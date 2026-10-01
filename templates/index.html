@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ MONSTER JUICE | 3D OVERDRIVE EXPERIENCE ⚡</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Syne:wght@700;800&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Three.js for Real 3D WebGL Can & Dynamic Lighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M20,20 L30,85 M50,10 L50,90 M80,25 L70,80' stroke='%2352ff00' stroke-width='14' stroke-linecap='round'/></svg>">
+</head>
+<body data-active-flavor="mango-loco" class="overdrive-active">
+
+    <!-- High-Voltage Full-Screen Screen Flash Overlay -->
+    <div class="strobe-flash" id="strobeFlash"></div>
+
+    <!-- Electric Lightning Storm Canvas -->
+    <canvas id="lightningCanvas"></canvas>
+
+    <!-- Ambient Glowing Light Background -->
+    <div class="ambient-glow" id="ambientGlow"></div>
+    <div class="cyber-grid-overlay"></div>
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Navigation Header -->
+    <header class="site-header">
+        <div class="nav-container">
+            <a href="#" class="brand-logo">
+                <div class="claw-wrap">
+                    <svg class="claw-icon" viewBox="0 0 100 100" width="40" height="40">
+                        <path d="M22 25 Q28 55 24 85" stroke="currentColor" stroke-width="12" stroke-linecap="round" fill="none"/>
+                        <path d="M50 15 Q54 50 49 90" stroke="currentColor" stroke-width="14" stroke-linecap="round" fill="none"/>
+                        <path d="M78 28 Q72 58 76 82" stroke="currentColor" stroke-width="12" stroke-linecap="round" fill="none"/>
+                    </svg>
+                    <div class="claw-spark"></div>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title glitch-text" data-text="MONSTER">MONSTER</span>
+                    <span class="brand-sub">JUICE 3D</span>
+                </div>
+            </a>
+
+            <nav class="nav-links">
+                <a href="#hero">3D Chamber</a>
+                <a href="#flavors">Flavors</a>
+                <a href="#synthesizer">Vibe Lab</a>
+                <a href="#specs">Specs</a>
+                <a href="#locator">Vault Tracker</a>
+            </nav>
+
+            <div class="nav-actions">
+                <!-- Overdrive Strobe Mode Toggle -->
+                <button id="overdriveToggleBtn" class="overdrive-btn active" title="Toggle Flashing Strobe FX">
+                    <span class="pulse-indicator"></span>
+                    <span class="btn-text">⚡ STROBE FX: ON</span>
+                </button>
+                <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound FX">
+                    <span class="icon-label">🔊 AUDIO ON</span>
+                </button>
+                <a href="#promo" class="glow-btn nav-cta">FREE CAN</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION: 3D CYBER CHAMBER -->
+    <section class="hero-section" id="hero">
+        <div class="hero-container">
+            <!-- Left: Punchy Copy & Stats with 3D Depth -->
+            <div class="hero-content">
+                <div class="hero-badge neon-flicker" id="heroBadge">⚡ OVERDRIVE FLAVOR DROP</div>
+                
+                <h1 class="hero-title">
+                    <span class="title-sub neon-flash-text">PURE UNTAMED JUICE</span><br>
+                    <span class="accent-text glitch-active" id="heroFlavorTitle">MANGO LOCO</span><br>
+                    <span class="hollow-text strobe-flicker">3D UNLEASHED</span>
+                </h1>
+                
+                <p class="hero-tagline" id="heroTagline">
+                    A heavenly blend of exotic juices certain to attract even the most stubborn spirit.
+                </p>
+
+                <div class="hero-metrics card-3d-tilt">
+                    <div class="metric-card">
+                        <span class="metric-val neon-counter" id="metricJuice">16%</span>
+                        <span class="metric-label">REAL FRUIT PUREE</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="metric-card">
+                        <span class="metric-val neon-counter">160<small>mg</small></span>
+                        <span class="metric-label">TAURINE BLEND</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="metric-card">
+                        <span class="metric-val neon-counter" id="metricCalories">210</span>
+                        <span class="metric-label">CALORIES / CAN</span>
+                    </div>
+                </div>
+
+                <div class="hero-buttons">
+                    <button class="glow-btn cta-large strobe-trigger" id="crackCanHeroBtn">
+                        <span class="btn-sparkle">💥</span> CRACK 3D CAN (SFX)
+                    </button>
+                    <button class="outline-btn" id="spinCanBtn">
+                        <span>🔄 360° SPIN</span>
+                    </button>
+                </div>
+
+                <div class="flavor-pills-label">SWITCH FLAVOR ENGINE (LIGHTNING TRIGGER):</div>
+                <div class="flavor-pills">
+                    {% for flavor in flavors %}
+                    <button class="flavor-pill {% if loop.first %}active{% endif %}" 
+                            data-flavor-id="{{ flavor.id }}"
+                            data-color="{{ flavor.color_primary }}"
+                            data-secondary="{{ flavor.color_secondary }}"
+                            data-glow="{{ flavor.color_glow }}"
+                            data-name="{{ flavor.name }}"
+                            data-tagline="{{ flavor.tagline }}"
+                            data-badge="{{ flavor.badge }}"
+                            data-juice="{{ flavor.juice_percentage }}"
+                            data-calories="{{ flavor.calories }}"
+                            data-caffeine="{{ flavor.caffeine }}">
+                        <span class="pill-dot" style="background: {{ flavor.color_primary }}; box-shadow: 0 0 10px {{ flavor.color_primary }};"></span>
+                        {{ flavor.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <div class="can-hint-tip">
+                    <span class="hint-icon">👆</span> Drag with mouse or swipe on the 3D can to rotate in full 360°
+                </div>
+            </div>
+
+            <!-- Right: Real Interactive 3D WebGL Can Stage -->
+            <div class="hero-3d-chamber">
+                <!-- Holographic Cybernetic 3D Rings -->
+                <div class="holo-ring holo-ring-1"></div>
+                <div class="holo-ring holo-ring-2"></div>
+                <div class="holo-ring holo-ring-3"></div>
+
+                <!-- Lightning Arc Nodes -->
+                <div class="lightning-node node-top"></div>
+                <div class="lightning-node node-left"></div>
+                <div class="lightning-node node-right"></div>
+                
+                <!-- WebGL Three.js 3D Canvas Mount Point -->
+                <div id="webglCanStage" class="webgl-can-wrapper">
+                    <div class="can-ambient-light" id="canAmbientLight"></div>
+                    <canvas id="threeCanCanvas"></canvas>
+                </div>
+
+                <!-- Floating 3D Badges with Depth -->
+                <div class="floating-badge-3d badge-depth-1">
+                    <div class="badge-inner">
+                        <span class="badge-icon">🥭</span>
+                        <div>
+                            <strong>Real Crushed Mango</strong>
+                            <p>Exotic Fruit Puree</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="floating-badge-3d badge-depth-2">
+                    <div class="badge-inner">
+                        <span class="badge-icon">⚡</span>
+                        <div>
+                            <strong>160mg Kinetic Kick</strong>
+                            <p>Taurine + Ginseng</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D Pedestal Glow Platform -->
+                <div class="pedestal-platform">
+                    <div class="pedestal-disc"></div>
+                    <div class="pedestal-laser"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FLAVOR ROSTER 3D SHOWCASE -->
+    <section class="section flavors-section" id="flavors">
+        <div class="section-header">
+            <span class="section-tag neon-strobe-tag">CYBERNETIC ARSENAL</span>
+            <h2 class="section-title glitch-active">5 SAVAGE JUICE FLAVORS</h2>
+            <p class="section-subtitle">Real fruit juice violently electrified with the Monster Energy horsepower.</p>
+        </div>
+
+        <div class="flavors-grid">
+            {% for flavor in flavors %}
+            <div class="flavor-card-3d" data-flavor-ref="{{ flavor.id }}" style="--card-accent: {{ flavor.color_primary }}; --card-glow: {{ flavor.color_glow }};">
+                <div class="card-glass-sheen"></div>
+                <div class="card-electric-border"></div>
+                
+                <div class="card-content-3d">
+                    <div class="card-top">
+                        <span class="badge-mini strobe-badge">{{ flavor.badge }}</span>
+                        <span class="juice-pill">{{ flavor.juice_percentage }}</span>
+                    </div>
+                    
+                    <div class="card-3d-visual">
+                        <div class="card-orb" style="background: radial-gradient(circle, {{ flavor.color_primary }} 0%, transparent 70%);"></div>
+                        <div class="can-preview-3d-hologram">
+                            <span class="hologram-label">{{ flavor.caffeine }}</span>
+                            <div class="holo-bar"></div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <h3 class="card-title">{{ flavor.name }}</h3>
+                        <p class="card-tagline">"{{ flavor.tagline }}"</p>
+                        <p class="card-desc">{{ flavor.description }}</p>
+
+                        <div class="flavor-notes">
+                            {% for note in flavor.flavor_profile %}
+                            <span class="note-chip">{{ note }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <button class="select-flavor-btn-3d strobe-trigger" data-flavor-id="{{ flavor.id }}">
+                            <span>LOAD INTO 3D CAN</span> ⚡
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- INTERACTIVE VIBE SYNTHESIZER / TASTE LAB -->
+    <section class="section synthesizer-section" id="synthesizer">
+        <div class="synthesizer-box card-3d-tilt">
+            <div class="synth-electric-aura"></div>
+            <div class="synth-header">
+                <span class="section-tag neon-strobe-tag">AI JUICE MATCHER</span>
+                <h2 class="section-title">FIND YOUR EXACT MONSTER FREQUENCY</h2>
+                <p>Tweak the neural gauges to synthesize your custom juice formula.</p>
+            </div>
+
+            <div class="synth-controls">
+                <div class="control-group">
+                    <label>
+                        <span>SWEETNESS VS. CITRUS TART</span>
+                        <span class="range-val" id="valSweet">TROPICAL SWEET</span>
+                    </label>
+                    <input type="range" id="sliderSweetness" min="1" max="5" value="4">
+                    <div class="range-labels">
+                        <span>Citrus Tart</span>
+                        <span>Balanced</span>
+                        <span>Exotic Sweet</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <span>ENERGY INTENSITY OCTANE</span>
+                        <span class="range-val" id="valIntensity">HIGH FREQUENCY</span>
+                    </label>
+                    <input type="range" id="sliderIntensity" min="1" max="3" value="2">
+                    <div class="range-labels">
+                        <span>All-Day Cruise</span>
+                        <span>Pre-Session Focus</span>
+                        <span>Apex Savage Drive</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <span>SCENERY / BIOME VIBE</span>
+                        <span class="range-val" id="valAesthetic">HAWAIIAN SURF</span>
+                    </label>
+                    <input type="range" id="sliderAesthetic" min="1" max="4" value="2">
+                    <div class="range-labels">
+                        <span>Día de Muertos</span>
+                        <span>North Shore Wave</span>
+                        <span>Urban Neon Skater</span>
+                        <span>Aussie Outback</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="synth-result-card" id="synthResultCard">
+                <div class="result-badge neon-flicker">⚡ MATCH SYNTHESIZED</div>
+                <h3 class="result-name neon-flash-text" id="resultName">PIPELINE PUNCH</h3>
+                <p class="result-reason" id="resultReason">Passionfruit, orange, and velvet guava with full-throttle Hawaiian energy.</p>
+                <button class="glow-btn cta-large strobe-trigger" id="lockMatchBtn">⚡ APPLY MATCH TO 3D CAN</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- NUTRITION & ENERGY SPECS -->
+    <section class="section specs-section" id="specs">
+        <div class="section-header">
+            <span class="section-tag neon-strobe-tag">MILITARY SPEC ENERGY</span>
+            <h2 class="section-title">THE ENGINE INSIDE THE CAN</h2>
+            <p class="section-subtitle">Real fruit craftsmanship backed by the world's most proven energy formula.</p>
+        </div>
+
+        <div class="specs-grid">
+            <div class="spec-card-3d">
+                <div class="spec-icon-3d">🧪</div>
+                <h4>Real Puree Matrix</h4>
+                <p>Up to 16% authentic juice blend with crushed mango, passionfruit, or citrus extracts rather than plain high fructose syrup.</p>
+            </div>
+            <div class="spec-card-3d">
+                <div class="spec-icon-3d">⚡</div>
+                <h4>Monster Energy Complex</h4>
+                <p>160mg Taurine, Panax Ginseng Root, L-Carnitine, and Inositol precisely calibrated for relentless stamina.</p>
+            </div>
+            <div class="spec-card-3d">
+                <div class="spec-icon-3d">🛡️</div>
+                <h4>Vitamin B Armor</h4>
+                <p>100% Daily Value of Riboflavin (B2), Niacin (B3), Vitamin B6, and Vitamin B12 to metabolize natural cellular power.</p>
+            </div>
+            <div class="spec-card-3d">
+                <div class="spec-icon-3d">🧊</div>
+                <h4>Hyper-Effervescence</h4>
+                <p>High-pressure carbonation engineered to stay razor-crisp down to the final sip, even in extreme summer skate heat.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- REVIEWS / STREET CRED -->
+    <section class="section reviews-section">
+        <div class="section-header">
+            <span class="section-tag neon-strobe-tag">STREET REPUTATION</span>
+            <h2 class="section-title">THE TRIBE HAS SPOKEN</h2>
+        </div>
+
+        <div class="reviews-slider">
+            <div class="review-card-3d">
+                <div class="review-stars neon-flicker">★★★★★</div>
+                <p class="review-quote">"Mango Loco legitimately tastes like an actual tropical mango puree fused with the raw power of a lightning bolt."</p>
+                <div class="review-meta">
+                    <strong>Kai V., Pro BMX Athlete</strong>
+                    <span class="review-flavor-tag">Mango Loco</span>
+                </div>
+            </div>
+            <div class="review-card-3d">
+                <div class="review-stars neon-flicker">★★★★★</div>
+                <p class="review-quote">"Pipeline Punch in the morning before paddling out at sunrise on the North Shore is an absolute mandatory ritual."</p>
+                <div class="review-meta">
+                    <strong>Elena M., Oahu Big Wave Surf</strong>
+                    <span class="review-flavor-tag">Pipeline Punch</span>
+                </div>
+            </div>
+            <div class="review-card-3d">
+                <div class="review-stars neon-flicker">★★★★★</div>
+                <p class="review-quote">"The citrus bite of Khaotic keeps our entire esports squad laser-locked during 14-hour championship finals."</p>
+                <div class="review-meta">
+                    <strong>Marcus 'Vortex' D., Pro Gamer</strong>
+                    <span class="review-flavor-tag">Khaotic</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STORE LOCATOR SECTION -->
+    <section class="section locator-section" id="locator">
+        <div class="locator-box card-3d-tilt">
+            <div class="locator-info">
+                <span class="section-tag neon-strobe-tag">COLD VAULT SCANNER</span>
+                <h2 class="section-title">HUNT DOWN A CHILLED CAN</h2>
+                <p>Enter your ZIP code to locate retailers with Monster Juice stocked on ice right now.</p>
+                
+                <form id="storeFinderForm" class="finder-form">
+                    <input type="text" id="zipInput" placeholder="Enter ZIP code (e.g. 90210, 10001, 75001)" required maxlength="10">
+                    <button type="submit" class="glow-btn strobe-trigger">RADAR SCAN</button>
+                </form>
+
+                <div id="storeResults" class="store-results">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CLAIM PROMO VOUCHER -->
+    <section class="section promo-section" id="promo">
+        <div class="promo-card card-3d-tilt">
+            <div class="promo-content">
+                <span class="badge-mini strobe-badge">⚡ VIP BEAST DROP</span>
+                <h2 class="glitch-active">CLAIM YOUR COMPLIMENTARY 16oz CAN</h2>
+                <p>Join the Monster Juice Underground VIP list. Receive an instant voucher redeemable at major retailers + 25% off your first 12-pack case.</p>
+                
+                <form id="promoForm" class="promo-form">
+                    <div class="input-wrap">
+                        <input type="email" id="promoEmail" placeholder="Enter your email address..." required>
+                        <button type="submit" class="glow-btn strobe-trigger">UNLEASH VOUCHER</button>
+                    </div>
+                </form>
+
+                <div id="promoFeedback" class="promo-feedback"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-col brand-col">
+                <div class="brand-logo">
+                    <svg class="claw-icon" viewBox="0 0 100 100" width="30" height="30">
+                        <path d="M22 25 Q28 55 24 85" stroke="currentColor" stroke-width="12" stroke-linecap="round" fill="none"/>
+                        <path d="M50 15 Q54 50 49 90" stroke="currentColor" stroke-width="14" stroke-linecap="round" fill="none"/>
+                        <path d="M78 28 Q72 58 76 82" stroke="currentColor" stroke-width="12" stroke-linecap="round" fill="none"/>
+                    </svg>
+                    <span class="brand-title">MONSTER JUICE 3D</span>
+                </div>
+                <p class="footer-desc">
+                    Tear into a can of the meanest energy juice on the planet. Engineered with real fruit purees and genuine Monster Energy horsepower.
+                </p>
+            </div>
+
+            <div class="footer-col">
+                <h4>THE 3D LINEUP</h4>
+                <ul>
+                    <li><a href="#hero" class="quick-flavor" data-fid="mango-loco">Mango Loco (Tropical Mango)</a></li>
+                    <li><a href="#hero" class="quick-flavor" data-fid="pipeline-punch">Pipeline Punch (Passionfruit)</a></li>
+                    <li><a href="#hero" class="quick-flavor" data-fid="khaotic">Khaotic (Re-engineered Citrus)</a></li>
+                    <li><a href="#hero" class="quick-flavor" data-fid="pacific-punch">Pacific Punch (Old School)</a></li>
+                    <li><a href="#hero" class="quick-flavor" data-fid="aussie-lemonade">Aussie Lemonade (Outback Fizz)</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>EXTREME CULTURE</h4>
+                <ul>
+                    <li><a href="#">Supercross Championship</a></li>
+                    <li><a href="#">UFC & Octagon Fights</a></li>
+                    <li><a href="#">X-Games BMX & Skate</a></li>
+                    <li><a href="#">Esports Warzone Leagues</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>CAUTION & FACTS</h4>
+                <p class="disclaimer-text">
+                    CONSUME RESPONSIBLY: Not recommended for children, people sensitive to caffeine, pregnant women or women who are nursing. 160mg of caffeine per 16 fl. oz. can.
+                </p>
+                <p class="copyright">© 2026 Monster Juice Energy Company. Crafted with Python, Three.js & Web Audio API.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive 3D & Strobe Engine Script -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
