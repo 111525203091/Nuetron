@@ -1,0 +1,33 @@
+[2026-10-01 14:22:43] [WARNING] GEMINI_API_KEY is not configured. JARVIS running in Local Protocol Mode.
+[2026-10-01 14:22:43] [INFO] Dispatcher initialized.
+[2026-10-01 14:22:43] [INFO] Dispatching action: get_time | target: 
+[2026-10-01 14:26:15] [INFO] Starting JARVIS...
+[2026-10-01 14:26:15] [WARNING] GEMINI_API_KEY is not configured. JARVIS running in Local Protocol Mode.
+[2026-10-01 14:26:15] [WARNING] TTS unavailable: name 'pyttsx3' is not defined
+[2026-10-01 14:26:15] [INFO] STT (speech recognition) initialized.
+[2026-10-01 14:26:15] [INFO] Voice engine initialized.
+[2026-10-01 14:26:15] [INFO] Dispatcher initialized.
+[2026-10-01 14:26:15] [INFO] Starting web server at http://127.0.0.1:5000
+[2026-10-01 14:26:15] [INFO] Web interface: http://127.0.0.1:5000
+[2026-10-01 14:27:13] [INFO] Starting JARVIS...
+[2026-10-01 14:27:13] [WARNING] GEMINI_API_KEY is not configured. JARVIS running in Local Protocol Mode.
+[2026-10-01 14:27:13] [WARNING] TTS unavailable: name 'pyttsx3' is not defined
+[2026-10-01 14:27:13] [INFO] STT (speech recognition) initialized.
+[2026-10-01 14:27:13] [INFO] Voice engine initialized.
+[2026-10-01 14:27:13] [INFO] Dispatcher initialized.
+[2026-10-01 14:27:13] [INFO] Starting web server at http://127.0.0.1:5000
+[2026-10-01 14:27:13] [INFO] Web interface: http://127.0.0.1:5000
+[2026-10-01 14:27:24] [INFO] WebSocket client connected
+[2026-10-01 14:27:25] [INFO] WebSocket client connected
+[2026-10-01 14:28:50] [INFO] Dispatching action: get_time | target: 
+[2026-10-01 14:29:10] [INFO] Starting JARVIS...
+[2026-10-01 14:29:10] [WARNING] GEMINI_API_KEY is not configured. JARVIS running in Local Protocol Mode.
+[2026-10-01 14:29:10] [INFO] TTS initialized with 2 voices available.
+[2026-10-01 14:29:10] [INFO] STT (speech recognition) initialized.
+[2026-10-01 14:29:10] [INFO] Voice engine initialized.
+[2026-10-01 14:29:10] [INFO] Dispatcher initialized.
+[2026-10-01 14:29:10] [INFO] Starting web server at http://127.0.0.1:5000
+[2026-10-01 14:29:10] [INFO] Web interface: http://127.0.0.1:5000
+[2026-10-01 14:29:22] [INFO] WebSocket client connected
+[2026-10-01 14:29:22] [INFO] WebSocket client connected
+[2026-10-01 14:29:24] [INFO] WebSocket client connected
