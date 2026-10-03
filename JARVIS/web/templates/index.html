@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ jarvis_name }} — AI Assistant</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- ── Animated Background ────────────────────────────────── -->
+  <div class="bg-grid"></div>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- ── Main Container ──────────────────────────────────────── -->
+  <div class="jarvis-container">
+
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <header class="jarvis-header">
+      <div class="header-left">
+        <div class="arc-reactor">
+          <div class="arc-ring arc-ring-1"></div>
+          <div class="arc-ring arc-ring-2"></div>
+          <div class="arc-core"></div>
+        </div>
+        <div class="header-title">
+          <h1 class="title-main">{{ jarvis_name }}</h1>
+          <p class="title-sub">Just A Rather Very Intelligent System</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="status-bar">
+          <span class="status-dot online" id="conn-dot"></span>
+          <span class="status-text" id="conn-status">CONNECTING</span>
+        </div>
+        <div class="system-stats" id="system-stats">
+          <span id="clock">--:--:--</span>
+        </div>
+        <div class="header-controls">
+          <button class="ctrl-btn" id="btn-voice" title="Toggle Voice Input">🎤</button>
+          <button class="ctrl-btn" id="btn-speak" title="Toggle Voice Output">🔊</button>
+          <button class="ctrl-btn" id="btn-theme" title="Toggle Theme">🌙</button>
+          <button class="ctrl-btn" id="btn-fullscreen" title="Fullscreen">⛶</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Main Layout ─────────────────────────────────────────── -->
+    <div class="main-layout">
+
+      <!-- ── Sidebar ─────────────────────────────────────────── -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">SYSTEM</h3>
+          <div class="metric-card">
+            <div class="metric-label">CPU</div>
+            <div class="metric-bar"><div class="metric-fill" id="cpu-bar" style="width:0%"></div></div>
+            <div class="metric-value" id="cpu-val">--%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">RAM</div>
+            <div class="metric-bar"><div class="metric-fill" id="ram-bar" style="width:0%"></div></div>
+            <div class="metric-value" id="ram-val">--%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">DISK</div>
+            <div class="metric-bar"><div class="metric-fill" id="disk-bar" style="width:0%"></div></div>
+            <div class="metric-value" id="disk-val">--%</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">QUICK ACTIONS</h3>
+          <div class="quick-actions">
+            <button class="qa-btn" data-cmd="system info">⚙ System Info</button>
+            <button class="qa-btn" data-cmd="what's the weather?">🌤 Weather</button>
+            <button class="qa-btn" data-cmd="latest news">📰 News</button>
+            <button class="qa-btn" data-cmd="list my tasks">📋 Tasks</button>
+            <button class="qa-btn" data-cmd="what time is it">⏰ Time</button>
+            <button class="qa-btn" data-cmd="take a screenshot">📸 Screenshot</button>
+            <button class="qa-btn" data-cmd="check my public ip">🌐 My IP</button>
+            <button class="qa-btn" data-cmd="tell me a joke">😄 Joke</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">HISTORY</h3>
+          <div class="history-list" id="history-list"></div>
+        </div>
+      </aside>
+
+      <!-- ── Chat Area ───────────────────────────────────────── -->
+      <main class="chat-area">
+        <div class="chat-messages" id="chat-messages">
+          <div class="welcome-msg">
+            <div class="arc-reactor-lg">
+              <div class="arc-ring arc-ring-1"></div>
+              <div class="arc-ring arc-ring-2"></div>
+              <div class="arc-ring arc-ring-3"></div>
+              <div class="arc-core"></div>
+            </div>
+            <h2>SYSTEMS ONLINE</h2>
+            <p>Good day, <strong>{{ owner_name }}</strong>. How may I assist you?</p>
+          </div>
+        </div>
+
+        <!-- Thinking indicator -->
+        <div class="thinking-indicator" id="thinking" style="display:none">
+          <div class="thinking-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="thinking-text">Processing request...</span>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+          <div class="input-wrapper">
+            <div class="input-icon">◈</div>
+            <textarea
+              id="user-input"
+              class="chat-input"
+              placeholder="Speak your command, {{ owner_name }}..."
+              rows="1"
+              autofocus
+            ></textarea>
+            <div class="input-controls">
+              <button class="mic-btn" id="mic-btn" title="Voice Input">
+                <span class="mic-icon">🎤</span>
+              </button>
+              <button class="send-btn" id="send-btn" title="Send">
+                <span>SEND</span>
+                <span class="send-arrow">▶</span>
+              </button>
+            </div>
+          </div>
+          <div class="input-hints">
+            <span>Try: "open chrome" · "weather in Mumbai" · "remind me to call at 5 PM" · "system status"</span>
+          </div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ── Notification Toast ─────────────────────────────────── -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ── Scripts ─────────────────────────────────────────────── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
