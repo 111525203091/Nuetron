@@ -46,7 +46,7 @@ function initSocket() {
   state.socket.on('connect', () => {
     connDot.className = 'status-dot online';
     connStatus.textContent = 'ONLINE';
-    showToast('Connected to JARVIS');
+    showToast('Connected to ULTRON');
   });
 
   state.socket.on('disconnect', () => {
@@ -114,9 +114,30 @@ function sendMessage(text) {
   state.msgHistory.push(text);
   userInput.value = '';
   autoResize(userInput);
-
-  state.socket.emit('message', { message: text });
   setThinking(true);
+
+  if (state.socket && state.socket.connected) {
+    state.socket.emit('message', { message: text });
+  } else {
+    // Socket disconnected: instant HTTP fallback so user is never ignored
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    })
+    .then(r => r.json())
+    .then(data => {
+      setThinking(false);
+      appendMessage('jarvis', data.response || data.error);
+      if (state.voiceOutputEnabled && data.response) {
+        speakText(data.response);
+      }
+    })
+    .catch(err => {
+      setThinking(false);
+      appendMessage('jarvis', 'Connection error: ' + err.message, true);
+    });
+  }
 }
 function appendMessage(role, text, isError = false) {
   // Hide welcome message
@@ -129,8 +150,8 @@ function appendMessage(role, text, isError = false) {
   const msgEl = document.createElement('div');
   msgEl.className = `msg ${role}`;
 
-  const avatar = isJarvis ? 'J' : '⬡';
-  const name   = isJarvis ? 'JARVIS' : 'YOU';
+  const avatar = isJarvis ? 'U' : '⬡';
+  const name   = isJarvis ? 'ULTRON' : 'YOU';
   const parsedText = isJarvis
     ? (typeof marked !== 'undefined' ? marked.parse(text) : escapeHtml(text))
     : `<p>${escapeHtml(text)}</p>`;

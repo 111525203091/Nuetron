@@ -74,7 +74,7 @@ def status():
         "online": True,
         "name": JARVIS_NAME,
         "owner": OWNER_NAME,
-        "model": "Gemini 3.5 Flash",
+        "model": "Gemini 3.5 Flash Lite",
         "metrics": metrics,
         # keep 'system' string for backward compat with chat skill
         "system": SystemSkills.get_system_info(),
@@ -135,10 +135,13 @@ def on_message(data):
         finally:
             if response is None:
                 response = f"My apologies, {OWNER_NAME}. That request didn't complete. Please try again."
-            # Emit to original sid; fall back to current active sid on reconnect
-            target = sid if sid == _active_sid else _active_sid
-            socketio.emit("response", {"message": response, "intent": intent_action}, to=target)
-            socketio.emit("thinking", {"status": False}, to=target)
+            target = _active_sid or sid
+            if target:
+                socketio.emit("response", {"message": response, "intent": intent_action}, to=target)
+                socketio.emit("thinking", {"status": False}, to=target)
+            else:
+                socketio.emit("response", {"message": response, "intent": intent_action})
+                socketio.emit("thinking", {"status": False})
 
         try:
             if _voice and _voice.tts_available and response:

@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environment / Secrets
+.env
+*.env
+
+# Logs
+data/logs/
+*.log
+
+# Data (runtime)
+data/memory.json
+data/tasks.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from core.config import (
-    GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MAX_TOKENS,
+    GEMINI_API_KEY, GEMINI_MODEL, GEMINI_FALLBACK_MODEL, GEMINI_MAX_TOKENS,
     GEMINI_TEMPERATURE, SYSTEM_PROMPT, MEMORY_FILE, OWNER_NAME
 )
 from core.logger import log
@@ -24,6 +24,7 @@ class JarvisBrain:
     def __init__(self):
         self.api_key = GEMINI_API_KEY
         self.model = GEMINI_MODEL
+        self.fallback_model = GEMINI_FALLBACK_MODEL
         self.conversation_history = []
         self.memory = self._load_memory()
         self.session = requests.Session()
@@ -112,8 +113,6 @@ Timezone: Local system time
         if context:
             prompt = f"[Context from system tools]\n{context}\n\n[User request]: {user_input}"
 
-        url = f"{self.BASE_URL}/{self.model}:generateContent?key={self.api_key}"
-
         # Build contents array from history + new prompt (keep last 6 for speed)
         contents = []
         for msg in self.conversation_history[-6:]:
@@ -140,63 +139,60 @@ Timezone: Local system time
             }
         }
 
-        try:
-            response = None
-            for attempt in range(2):
+        reply = None
+        models_to_try = [self.model, self.fallback_model]
+
+        for current_model in models_to_try:
+            url = f"{self.BASE_URL}/{current_model}:generateContent?key={self.api_key}"
+            try:
                 response = self.session.post(
                     url,
                     headers={"Content-Type": "application/json"},
                     json=payload,
-                    timeout=20
+                    timeout=7
                 )
-                if response.status_code not in (429, 503):
+                if response.status_code == 200:
+                    data = response.json()
+                    try:
+                        reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        break
+                    except (KeyError, IndexError):
+                        pass
+                elif response.status_code == 429:
+                    log.warning("Model %s returned 429 (rate limited) — trying fallback...", current_model)
+                    continue
+                elif response.status_code == 403:
+                    reply = f"API Key authorization failed, {OWNER_NAME}. Please verify your GEMINI_API_KEY in .env."
                     break
-                if attempt == 0:
-                    import time as _time
-                    log.warning("Gemini HTTP %d — quick retry in 1.5s...", response.status_code)
-                    _time.sleep(1.5)
+                else:
+                    log.warning("Model %s returned HTTP %d — trying fallback...", current_model, response.status_code)
+                    continue
+            except Exception as e:
+                log.warning("Model %s request failed (%s) — trying fallback...", current_model, str(e))
+                continue
 
-            if response.status_code == 200:
-                data = response.json()
-                try:
-                    reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                except (KeyError, IndexError):
-                    reply = f"Apologies, {OWNER_NAME}. I received an empty response from my cognitive systems."
-            elif response.status_code == 429:
-                reply = f"My cognitive quota is temporarily refreshing, {OWNER_NAME}. All local commands, system controls, and diagnostics remain active."
-                log.warning("Gemini 429: rate limit reached.")
-            elif response.status_code == 400:
-                err_data = response.json().get("error", {})
-                reply = f"API configuration issue, {OWNER_NAME}: {err_data.get('message', 'Invalid request')}"
-                log.error("Gemini 400: %s", response.text)
-            elif response.status_code == 403:
-                reply = f"API Key authorization failed, {OWNER_NAME}. Please verify your GEMINI_API_KEY in the .env file."
-                log.error("Gemini 403: %s", response.text)
-            else:
-                reply = f"Cognitive systems offline ({response.status_code}), {OWNER_NAME}."
-                log.error("Gemini HTTP %d: %s", response.status_code, response.text)
+        if not reply:
+            import time as _time
+            self._quota_cooldown_until = _time.time() + 30
+            reply = (
+                f"My cognitive mainframe is momentarily refreshing, {OWNER_NAME}. "
+                f"Operating in local protocol mode. All local system tools, diagnostics, and controls remain active."
+            )
 
-            # Log to conversation history
-            self.conversation_history.append({
-                "role": "user",
-                "content": user_input,
-                "timestamp": datetime.datetime.now().isoformat()
-            })
-            self.conversation_history.append({
-                "role": "jarvis",
-                "content": reply,
-                "timestamp": datetime.datetime.now().isoformat()
-            })
+        # Log to conversation history
+        self.conversation_history.append({
+            "role": "user",
+            "content": user_input,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+        self.conversation_history.append({
+            "role": "jarvis",
+            "content": reply,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
 
-            self.save_memory()
-            return reply
-
-        except requests.exceptions.Timeout:
-            log.error("Gemini API request timed out")
-            return f"My connection to the cognitive mainframe timed out, {OWNER_NAME}."
-        except Exception as e:
-            log.error("Gemini REST API error: %s", str(e))
-            return f"I'm experiencing an operational anomaly, {OWNER_NAME}. Details: {str(e)}"
+        self.save_memory()
+        return reply
 
     def reset_conversation(self):
         """Start a fresh conversation while keeping memory."""

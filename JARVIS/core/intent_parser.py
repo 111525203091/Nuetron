@@ -105,7 +105,7 @@ class IntentParser:
         (r"\b(hello|hi|hey|good morning|good afternoon|good evening|greetings)\b", "greeting", {}),
 
         # Exit
-        (r"\b(goodbye|bye|exit|quit|shutdown jarvis)\b", "exit", {}),
+        (r"\b(goodbye|bye|exit|quit|shutdown (?:jarvis|ultron))\b", "exit", {}),
     ]
 
     @classmethod
