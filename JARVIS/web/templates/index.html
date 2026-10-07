@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ jarvis_name }} — AI Assistant</title>
+  <title>{{ jarvis_name }} — Autonomous Neural Intelligence</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="icon" type="image/png" href="/static/img/icon-192.png" />
+  <meta name="theme-color" content="#ff1744" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -39,6 +44,7 @@
           <span id="clock">--:--:--</span>
         </div>
         <div class="header-controls">
+          <button class="ctrl-btn" id="btn-install" title="Install ULTRON Desktop App" style="display:none">📥</button>
           <button class="ctrl-btn" id="btn-voice" title="Toggle Voice Input">🎤</button>
           <button class="ctrl-btn" id="btn-speak" title="Toggle Voice Output">🔊</button>
           <button class="ctrl-btn" id="btn-theme" title="Toggle Theme">🌙</button>

@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initQuickActions();
   initControls();
   initInputHandlers();
+  initPWA();
 });
 
 // ─── Socket.IO ────────────────────────────────────────────────
@@ -360,6 +361,39 @@ function initControls() {
     } else {
       startVoiceInput();
     }
+  });
+}
+
+// ─── PWA Installation ─────────────────────────────────────────
+function initPWA() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+  }
+
+  let deferredPrompt = null;
+  const installBtn = $('btn-install');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) {
+      installBtn.style.display = 'inline-flex';
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installBtn.style.display = 'none';
+          showToast('ULTRON Desktop App Installed!');
+        }
+        deferredPrompt = null;
+      });
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.style.display = 'none';
+    showToast('ULTRON running in Standalone App Mode');
   });
 }
 
