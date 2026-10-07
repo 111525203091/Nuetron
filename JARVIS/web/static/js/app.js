@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initControls();
   initInputHandlers();
   initPWA();
+  initTerminal();
+  initLocation();
 });
 
 // ─── Socket.IO ────────────────────────────────────────────────
@@ -511,4 +513,131 @@ function initParticles() {
     requestAnimationFrame(animate);
   }
   animate();
+}
+
+// ─── Terminal Panel ───────────────────────────────────────────
+function initTerminal() {
+  const overlay    = document.getElementById('terminal-overlay');
+  const termOutput = document.getElementById('term-output');
+  const termInput  = document.getElementById('term-input');
+  const termCwd    = document.getElementById('term-cwd');
+  const termRun    = document.getElementById('term-run');
+  const termClose  = document.getElementById('term-close');
+  const qaTermBtn  = document.getElementById('qa-terminal');
+
+  if (!overlay) return;
+
+  let currentCwd = null;
+  let cmdHistory = [];
+  let histIdx = -1;
+
+  function openTerminal() {
+    overlay.classList.remove('hidden');
+    termInput.focus();
+    if (termOutput.children.length === 0) {
+      appendTermLine('system', '⚡ ULTRON Terminal — Type a command and press Enter or click RUN');
+      appendTermLine('system', '📂 Working directory: ' + (currentCwd || '~'));
+    }
+  }
+
+  function closeTerminal() {
+    overlay.classList.add('hidden');
+  }
+
+  if (qaTermBtn) qaTermBtn.addEventListener('click', openTerminal);
+  if (termClose) termClose.addEventListener('click', closeTerminal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeTerminal(); });
+
+  function appendTermLine(type, text) {
+    const line = document.createElement('div');
+    line.className = 'term-line term-' + type;
+    line.textContent = text;
+    termOutput.appendChild(line);
+    termOutput.scrollTop = termOutput.scrollHeight;
+  }
+
+  async function runCommand() {
+    const cmd = termInput.value.trim();
+    if (!cmd) return;
+
+    cmdHistory.unshift(cmd);
+    histIdx = -1;
+    termInput.value = '';
+
+    appendTermLine('input', '$ ' + cmd);
+    appendTermLine('system', '⏳ Executing...');
+
+    try {
+      const res = await fetch('/api/terminal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: cmd, cwd: currentCwd }),
+      });
+      const data = await res.json();
+
+      // Remove the "Executing..." line
+      const lastLine = termOutput.lastElementChild;
+      if (lastLine && lastLine.textContent === '⏳ Executing...') termOutput.removeChild(lastLine);
+
+      if (data.stdout) {
+        data.stdout.split('\n').forEach(l => appendTermLine('stdout', l));
+      }
+      if (data.stderr) {
+        data.stderr.split('\n').forEach(l => appendTermLine('stderr', l));
+      }
+      const rc = data.returncode;
+      appendTermLine(rc === 0 ? 'success' : 'error',
+        `→ Exit ${rc} | Dir: ${data.cwd}`);
+
+      // Update tracked cwd if command was cd
+      if (cmd.toLowerCase().startsWith('cd ') && rc === 0 && data.cwd) {
+        currentCwd = data.cwd;
+        termCwd.textContent = data.cwd;
+      } else if (data.cwd) {
+        currentCwd = data.cwd;
+        termCwd.textContent = data.cwd;
+      }
+    } catch (err) {
+      const lastLine = termOutput.lastElementChild;
+      if (lastLine && lastLine.textContent === '⏳ Executing...') termOutput.removeChild(lastLine);
+      appendTermLine('error', '✗ Network error: ' + err.message);
+    }
+
+    termInput.focus();
+  }
+
+  termRun.addEventListener('click', runCommand);
+  termInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { runCommand(); return; }
+    if (e.key === 'ArrowUp') {
+      histIdx = Math.min(histIdx + 1, cmdHistory.length - 1);
+      if (cmdHistory[histIdx]) termInput.value = cmdHistory[histIdx];
+    }
+    if (e.key === 'ArrowDown') {
+      histIdx = Math.max(histIdx - 1, -1);
+      termInput.value = histIdx >= 0 ? cmdHistory[histIdx] : '';
+    }
+    if (e.key === 'Escape') closeTerminal();
+  });
+}
+
+// ─── Location Widget ──────────────────────────────────────────
+function initLocation() {
+  const widget      = document.getElementById('location-widget');
+  const locationTxt = document.getElementById('location-text');
+  const closeBtn    = document.getElementById('location-close');
+
+  if (!widget) return;
+  if (closeBtn) closeBtn.addEventListener('click', () => widget.classList.add('hidden'));
+
+  // Auto-detect location on load and show in HUD corner quietly
+  fetch('/api/location')
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok && data.city) {
+        locationTxt.textContent = `📍 ${data.city}, ${data.country}`;
+        widget.classList.remove('hidden');
+      }
+    })
+    .catch(() => {}); // fail silently
 }

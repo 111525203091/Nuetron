@@ -122,6 +122,30 @@ class Dispatcher:
             result = self.sys.search_files(target)
             return f"Search results for '{target}', {OWNER_NAME}:\n\n{result}"
 
+        # ─── Terminal ─────────────────────────────────────────────────────────
+        elif action == "run_terminal":
+            command = target or intent.raw
+            result = self.sys.run_terminal_command(command)
+            formatted = self.sys.format_terminal_result(result)
+            rc = result["returncode"]
+            status = "✅ Success" if rc == 0 else f"⚠️ Exit {rc}"
+            return f"**Terminal** [{status}], {OWNER_NAME}:\n\n{formatted}"
+
+        # ─── Location ─────────────────────────────────────────────────────────
+        elif action == "get_location":
+            info = self.web.get_location_string()
+            return f"{info}"
+
+        elif action == "get_local_weather":
+            info = self.web.get_local_weather()
+            return f"Local atmospheric data, {OWNER_NAME}:\n\n{info}"
+
+        # ─── Fetch URL ────────────────────────────────────────────────────────
+        elif action == "fetch_url":
+            url = target or intent.raw
+            content = self.web.fetch_url(url)
+            return content
+
         # ─── Clipboard ────────────────────────────────────────────────────────
         elif action == "get_clipboard":
             result = self.sys.get_clipboard()

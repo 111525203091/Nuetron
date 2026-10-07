@@ -93,6 +93,29 @@ def tasks():
     return jsonify({"tasks": _dispatcher.tasks.tasks})
 
 
+@app.route("/api/terminal", methods=["POST"])
+def terminal():
+    """Execute a shell command and return structured output."""
+    data = request.get_json()
+    command = (data.get("command") or "").strip()
+    cwd = data.get("cwd", None)
+
+    if not command:
+        return jsonify({"error": "No command provided"}), 400
+
+    from skills.system_skills import SystemSkills
+    result = SystemSkills.run_terminal_command(command, cwd=cwd)
+    return jsonify(result)
+
+
+@app.route("/api/location")
+def location():
+    """Return the user's detected location via IP geolocation."""
+    from skills.web_skills import WebSkills
+    loc = WebSkills.get_location()
+    return jsonify(loc)
+
+
 # ─── Active session tracking ──────────────────────────────────────────────────
 _active_sid = None
 

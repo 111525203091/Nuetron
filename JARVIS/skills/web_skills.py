@@ -261,3 +261,98 @@ class WebSkills:
             return "\n".join(answers) if answers else "No computational result found."
         except Exception as e:
             return f"WolframAlpha error: {str(e)}"
+
+    # ─── Location Detection ────────────────────────────────────────────────────
+
+    @staticmethod
+    def get_location() -> dict:
+        """
+        Detect user's current location via IP geolocation.
+        Returns a structured dict with city, region, country, lat/lon, timezone, ISP.
+        """
+        try:
+            # ip-api.com free tier — no key required
+            r = requests.get("http://ip-api.com/json/?fields=status,message,country,regionName,city,lat,lon,timezone,isp,query", timeout=4)
+            data = r.json()
+            if data.get("status") == "success":
+                return {
+                    "ok": True,
+                    "ip": data.get("query", ""),
+                    "city": data.get("city", ""),
+                    "region": data.get("regionName", ""),
+                    "country": data.get("country", ""),
+                    "lat": data.get("lat", 0),
+                    "lon": data.get("lon", 0),
+                    "timezone": data.get("timezone", ""),
+                    "isp": data.get("isp", ""),
+                }
+            return {"ok": False, "error": data.get("message", "Unknown error")}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @staticmethod
+    def get_location_string() -> str:
+        """Return a formatted location string for the user."""
+        loc = WebSkills.get_location()
+        if not loc.get("ok"):
+            return f"Location unavailable: {loc.get('error', 'Unknown error')}"
+        return (
+            f"📍 Your Location:\n"
+            f"  • City: {loc['city']}, {loc['region']}\n"
+            f"  • Country: {loc['country']}\n"
+            f"  • Coordinates: {loc['lat']}°N, {loc['lon']}°E\n"
+            f"  • Timezone: {loc['timezone']}\n"
+            f"  • ISP: {loc['isp']}\n"
+            f"  • IP Address: {loc['ip']}"
+        )
+
+    @staticmethod
+    def get_local_weather() -> str:
+        """Get weather for the user's current detected location."""
+        loc = WebSkills.get_location()
+        if not loc.get("ok"):
+            return f"Could not auto-detect location: {loc.get('error')}"
+        city = loc.get("city", "")
+        country = loc.get("country", "")
+        if not city:
+            return "Could not determine your city from your IP location."
+        result = WebSkills.get_weather(city)
+        return result
+
+    # ─── Fetch URL Content ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def fetch_url(url: str, max_chars: int = 3000) -> str:
+        """
+        Fetch plain text content from any URL.
+        Strips HTML tags and returns clean readable text.
+        """
+        try:
+            import urllib.request as _req
+            import html
+            import re as _re
+
+            # Ensure URL has scheme
+            if not url.startswith(("http://", "https://")):
+                url = "https://" + url
+
+            req = _req.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ULTRON/1.0",
+                "Accept": "text/html,application/xhtml+xml,*/*",
+            })
+            with _req.urlopen(req, timeout=8) as response:
+                raw = response.read().decode("utf-8", errors="ignore")
+
+            # Strip HTML tags
+            clean = _re.sub(r"<script[^>]*>.*?</script>", "", raw, flags=_re.DOTALL | _re.IGNORECASE)
+            clean = _re.sub(r"<style[^>]*>.*?</style>", "", clean, flags=_re.DOTALL | _re.IGNORECASE)
+            clean = _re.sub(r"<[^>]+>", " ", clean)
+            clean = html.unescape(clean)
+            clean = _re.sub(r"\s{2,}", " ", clean).strip()
+
+            if len(clean) > max_chars:
+                clean = clean[:max_chars] + f"\n\n...[truncated — {len(clean)} total chars]"
+
+            return f"**Content from** `{url}`:\n\n{clean}"
+        except Exception as e:
+            return f"Could not fetch URL '{url}': {str(e)}"

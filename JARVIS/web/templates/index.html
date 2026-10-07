@@ -88,6 +88,9 @@
             <button class="qa-btn" data-cmd="take a screenshot">📸 Screenshot</button>
             <button class="qa-btn" data-cmd="check my public ip">🌐 My IP</button>
             <button class="qa-btn" data-cmd="tell me a joke">😄 Joke</button>
+            <button class="qa-btn" id="qa-terminal">⚡ Terminal</button>
+            <button class="qa-btn" data-cmd="where am i">📍 Location</button>
+            <button class="qa-btn" data-cmd="local weather">🌦 Local Weather</button>
           </div>
         </div>
 
@@ -142,12 +145,35 @@
             </div>
           </div>
           <div class="input-hints">
-            <span>Try: "open chrome" · "weather in Mumbai" · "remind me to call at 5 PM" · "system status"</span>
+            <span>Try: "run: dir" · "where am i" · "local weather" · "fetch https://example.com" · "open chrome"</span>
           </div>
         </div>
       </main>
 
     </div>
+  </div>
+
+  <!-- ── Terminal Modal Panel ───────────────────────────────── -->
+  <div id="terminal-overlay" class="terminal-overlay hidden">
+    <div class="terminal-panel">
+      <div class="terminal-header">
+        <span class="terminal-title">⚡ ULTRON TERMINAL</span>
+        <span class="terminal-cwd" id="term-cwd">~</span>
+        <button class="terminal-close" id="term-close">✕</button>
+      </div>
+      <div class="terminal-output" id="term-output"></div>
+      <div class="terminal-input-row">
+        <span class="terminal-prompt" id="term-prompt">$</span>
+        <input class="terminal-cmd" id="term-input" type="text" placeholder="Enter command..." autocomplete="off" spellcheck="false" />
+        <button class="terminal-run" id="term-run">RUN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Location Widget ────────────────────────────────────── -->
+  <div id="location-widget" class="location-widget hidden">
+    <span id="location-text">📍 Detecting...</span>
+    <button class="location-close" id="location-close">✕</button>
   </div>
 
   <!-- ── Notification Toast ─────────────────────────────────── -->

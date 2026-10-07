@@ -399,3 +399,81 @@ for($i=0;$i -lt $steps;$i++){{$wshShell.SendKeys([char]175)}};
             return "Workstation locked."
         except Exception as e:
             return f"Lock error: {str(e)}"
+
+    # ─── Terminal / Shell Access ───────────────────────────────────────────────
+
+    # Blocked commands for safety
+    _BLOCKED_CMDS = {
+        "rm -rf", "del /f /s /q", "format", "mkfs", "dd if=",
+        "shutdown /f", ":(){:|:&};:", "reg delete", "bcdedit",
+        "diskpart", "cipher /w", "sfc /scannow",
+    }
+
+    @classmethod
+    def run_terminal_command(cls, command: str, cwd: str = None, timeout: int = 15) -> dict:
+        """
+        Execute a shell command and return structured output.
+        Returns a dict with keys: command, stdout, stderr, returncode, cwd.
+        Dangerous commands are blocked.
+        """
+        cmd_lower = command.lower().strip()
+        for blocked in cls._BLOCKED_CMDS:
+            if blocked in cmd_lower:
+                return {
+                    "command": command,
+                    "stdout": "",
+                    "stderr": f"⛔ BLOCKED: Command contains disallowed pattern: '{blocked}'",
+                    "returncode": -1,
+                    "cwd": cwd or os.getcwd(),
+                }
+
+        # Resolve working directory
+        work_dir = cwd or os.path.expanduser("~")
+        if not os.path.isdir(work_dir):
+            work_dir = os.path.expanduser("~")
+
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=work_dir,
+                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+            )
+            return {
+                "command": command,
+                "stdout": result.stdout.strip(),
+                "stderr": result.stderr.strip(),
+                "returncode": result.returncode,
+                "cwd": work_dir,
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "command": command,
+                "stdout": "",
+                "stderr": f"⏱ Command timed out after {timeout}s",
+                "returncode": -1,
+                "cwd": work_dir,
+            }
+        except Exception as e:
+            return {
+                "command": command,
+                "stdout": "",
+                "stderr": f"Error: {str(e)}",
+                "returncode": -1,
+                "cwd": work_dir,
+            }
+
+    @staticmethod
+    def format_terminal_result(result: dict) -> str:
+        """Format a terminal result dict into a readable response string."""
+        lines = [f"```\n$ {result['command']}"]
+        if result["stdout"]:
+            lines.append(result["stdout"])
+        if result["stderr"]:
+            lines.append(f"[stderr] {result['stderr']}")
+        rc = result["returncode"]
+        lines.append(f"```\n*Exit code: {rc} | Directory: {result['cwd']}*")
+        return "\n".join(lines)

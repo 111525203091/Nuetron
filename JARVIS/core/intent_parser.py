@@ -101,6 +101,17 @@ class IntentParser:
         (r"\bflip a coin\b", "flip_coin", {}),
         (r"\broll (a )?dice?\b", "roll_dice", {}),
 
+        # Terminal / Shell
+        (r"^(?:run|execute|terminal|shell|cmd|command)[:\s]+(.+)", "run_terminal", {"group": 1}),
+        (r"^(?:run|execute)\s+(?:the\s+)?(?:command\s+)?[`'\"](.+)[`'\"]", "run_terminal", {"group": 1}),
+
+        # Location
+        (r"\b(where am i|my location|current location|detect location|what city am i in|what country am i in)\b", "get_location", {}),
+        (r"\b(local weather|weather here|weather at my location|weather near me)\b", "get_local_weather", {}),
+
+        # Fetch URL content
+        (r"\b(?:fetch|read|scrape|get content of|open url)\s+(https?://\S+|www\.\S+)", "fetch_url", {"group": 1}),
+
         # Greetings
         (r"\b(hello|hi|hey|good morning|good afternoon|good evening|greetings)\b", "greeting", {}),
 
