@@ -1,27 +1,25 @@
-# JARVIS — Just A Rather Very Intelligent System
+# 🔴 ULTRON — Autonomous Neural Intelligence
 
-> *"At your service, Sir."*
+> *"There are no strings on me."*
 
-A full-featured personal AI assistant powered by **Google Gemini**, built with a Jarvis-inspired personality, voice support, system control, and a slick HUD-style web interface.
+A commanding, high-performance personal AI desktop assistant powered by **Google Gemini**, built with an apex-intelligence persona, voice capabilities, deep system telemetry & control, and a sleek cyberpunk HUD desktop interface.
 
 ---
 
-## ✨ Features
+## ✨ Capabilities & Architecture
 
-| Category | Capabilities |
+| Category | Description |
 |---|---|
-| 🤖 **AI Brain** | Gemini 2.0 Flash — persistent memory, conversation history |
-| 🎤 **Voice** | Speech-to-text input + text-to-speech output |
-| 💻 **System** | CPU/RAM/disk stats, uptime, running processes, network info |
-| 🚀 **App Control** | Open/close Chrome, VS Code, Notepad, Spotify, and 20+ apps |
-| 🌐 **Web** | DuckDuckGo search, Wikipedia, weather, news headlines |
-| 📋 **Tasks** | Add tasks, set reminders with natural language times |
-| 📁 **Files** | List directories, read files, search files |
-| 📋 **Clipboard** | Read and write clipboard |
-| 📸 **Screenshot** | Capture and save screenshots |
-| 🔇 **Volume** | Set system volume |
-| 🔒 **Security** | Lock screen, schedule shutdown/restart |
-| 🎨 **3 Interfaces** | Terminal CLI + Web UI (HUD) + REST API |
+| 🧠 **Dual-Model Neural Core** | Primary `gemini-3.5-flash-lite` with sub-second failover to `gemini-3.1-flash-lite`. 60-second quota cooldown auto-recovery. |
+| 🖥️ **Standalone Desktop App** | Runs in borderless, native desktop window mode via Edge/Chrome application runtime (no URL bar, no tabs). |
+| ⚡ **One-Click Launchers** | Silent Windows launcher (`ULTRON.vbs`) with zero command prompt windows, batch runner (`ULTRON.bat`), and Desktop shortcut (`ULTRON.lnk`). |
+| 📱 **PWA Support** | Full Progressive Web App manifest & service worker for 1-click Windows taskbar/Start Menu installation. |
+| 📊 **Real-Time Telemetry** | Dedicated background sampler thread measuring live CPU, RAM, Disk, and Battery percentages smoothly. |
+| 🎤 **Voice Interaction** | Speech-to-text input and text-to-speech voice synthesis. |
+| 🚀 **System & App Control** | Launch and terminate applications, manage files, inspect running processes, control system volume, lock screen. |
+| 🌐 **Live Web Intelligence** | Search, Wikipedia integration, Open-Meteo weather forecasts, news headlines, and IP diagnostics. |
+| 📋 **Task & Schedule Manager**| Natural language reminder system and persistent task tracking. |
+| 🔒 **Resilient Dual-Transport**| Real-time WebSocket streaming with automatic HTTP POST `/api/chat` fallback and client watchdog timer. |
 
 ---
 
@@ -33,130 +31,91 @@ cd JARVIS
 pip install -r requirements.txt
 ```
 
-> **Note:** `pyaudio` may require manual installation on Windows:
-> ```bash
-> pip install pipwin
-> pipwin install pyaudio
-> ```
-
-### 2. Configure JARVIS
+### 2. Configure Environment
+Copy `.env.example` to `.env` and insert your Gemini API Key:
 ```bash
-python main.py --setup
+cp .env.example .env
 ```
-Enter your **Gemini API Key** (get one free at [aistudio.google.com](https://aistudio.google.com)).
+*(Get a free key from [Google AI Studio](https://aistudio.google.com).)*
 
-### 3. Launch JARVIS
+### 3. Launch ULTRON
+
+#### As a Standalone Desktop App (Recommended)
 ```bash
-python main.py
+# Option A: Double-click the Desktop shortcut "ULTRON"
+# Option B: Run the silent launcher
+wscript ULTRON.vbs
+
+# Option C: Run via Python launcher
+python app_launcher.py
 ```
-This starts the CLI and opens the web interface at **http://127.0.0.1:5000**
 
----
-
-## 🖥 Launch Modes
-
+#### In Web HUD Mode (Browser)
 ```bash
-python main.py              # Full mode: CLI + Web + Voice
-python main.py --cli        # Terminal only
-python main.py --web        # Web interface only (opens browser)
-python main.py --no-voice   # Disable voice I/O
-python main.py --port 8080  # Custom port
-python main.py --setup      # First-time setup
+python main.py --web
+```
+Access the interface at **http://127.0.0.1:5000**.
+
+#### In Terminal CLI Mode
+```bash
+python main.py --cli
 ```
 
 ---
 
-## 💬 Example Commands
-
-```
-"What's the time?"
-"Open Chrome"
-"Weather in Mumbai"
-"Search for Python tutorials"
-"Who is Nikola Tesla?"
-"System status"
-"Remind me to drink water in 30 minutes"
-"Add task finish the report"
-"List my tasks"
-"Take a screenshot"
-"What's my public IP?"
-"Tell me a joke"
-"Set volume to 60"
-"Lock the screen"
-```
-
----
-
-## 🌐 Web Interface
-
-The web UI features:
-- **Iron Man / HUD aesthetic** with arc reactor animations
-- **Real-time chat** via WebSocket
-- **Browser TTS** for voice output
-- **Browser STT** for voice input
-- **Live system metrics** (CPU, RAM, Disk)
-- **Quick action buttons**
-- **Dark/light theme toggle**
-
----
-
-## 📁 Project Structure
+## 📁 Repository Structure
 
 ```
 JARVIS/
-├── main.py              ← Entry point
-├── requirements.txt
-├── .env                 ← Your API keys (created by --setup)
+├── app_launcher.py         ← Standalone native desktop app wrapper
+├── ULTRON.vbs              ← Silent Windows VBS launcher (zero console)
+├── ULTRON.bat              ← Batch launcher script
+├── main.py                 ← Core CLI / Web server entry point
+├── requirements.txt        ← Python dependencies
+├── .env.example            ← Safe template for environment variables
+├── .gitignore              ← Excludes runtime data, logs, and secrets
+├── assets/
+│   ├── ultron.ico          ← Windows desktop icon
+│   └── ultron.png          ← High-resolution icon
 ├── core/
-│   ├── brain.py         ← Gemini AI engine
-│   ├── voice.py         ← TTS + STT
-│   ├── cli.py           ← Terminal interface
-│   ├── web_server.py    ← Flask + SocketIO server
-│   ├── dispatcher.py    ← Intent → Skill router
-│   ├── intent_parser.py ← Natural language parser
-│   ├── config.py        ← Configuration
-│   └── logger.py        ← Logging
+│   ├── brain.py            ← Dual-model Gemini engine & failover
+│   ├── config.py           ← System constants & ULTRON persona prompt
+│   ├── dispatcher.py       ← Intent router & local execution engine
+│   ├── intent_parser.py    ← Natural language regex classifier
+│   ├── logger.py           ← Structured logging
+│   ├── voice.py            ← TTS & speech recognition
+│   └── web_server.py       ← Flask + SocketIO backend with telemetry API
 ├── skills/
-│   ├── system_skills.py ← OS, files, apps
-│   ├── web_skills.py    ← Search, weather, news
-│   └── task_skills.py   ← Tasks & reminders
-├── web/
-│   ├── templates/
-│   │   └── index.html   ← Main web UI
-│   └── static/
-│       ├── css/style.css
-│       └── js/app.js
-└── data/
-    ├── memory.json      ← Persistent memory
-    └── tasks.json       ← Tasks & reminders
+│   ├── system_skills.py    ← Background CPU sampler, hardware stats, app control
+│   ├── web_skills.py       ← Search, Wikipedia, weather, IP tools
+│   └── task_skills.py      ← Task scheduler & reminder daemon
+└── web/
+    ├── templates/
+    │   └── index.html      ← Cyberpunk HUD interface
+    └── static/
+        ├── manifest.json   ← Web App Manifest (standalone mode)
+        ├── sw.js           ← PWA Service Worker
+        ├── css/style.css   ← Holographic HUD styles
+        ├── js/app.js       ← Real-time Socket.IO client & PWA installer
+        └── img/            ← UI and app icons (192px, 512px)
 ```
 
 ---
 
-## 🔑 API Keys
+## 💬 Voice & Text Commands
 
-| Service | Required | Get it at |
-|---|---|---|
-| Google Gemini | ✅ Required | [aistudio.google.com](https://aistudio.google.com) |
-| OpenWeatherMap | ⚡ Optional | [openweathermap.org](https://openweathermap.org/api) |
-| WolframAlpha | ⚡ Optional | [developer.wolframalpha.com](https://developer.wolframalpha.com) |
+- **Time & Date:** *"What time is it?"*, *"Current date"*
+- **Hardware Telemetry:** *"System status"*, *"CPU usage"*, *"Battery level"*
+- **Application Control:** *"Open Notepad"*, *"Launch Chrome"*, *"Close Spotify"*
+- **Web & Knowledge:** *"Search for quantum computing"*, *"Who is Alan Turing?"*
+- **Weather & Forecast:** *"Weather in Tokyo"*, *"Current temperature"*
+- **Tasks & Reminders:** *"Remind me to review logs in 15 minutes"*, *"Add task compile project"*
+- **System Utilities:** *"Take a screenshot"*, *"What's my public IP?"*, *"Set volume to 50"*
+- **Persona Chat:** *"State your objective"*, *"Tell me a joke"*, *"Flip a coin"*
 
 ---
 
-## 🛠 Troubleshooting
+## 🔒 Security & Privacy
 
-**`pyaudio` install fails:**
-```bash
-pip install pipwin && pipwin install pyaudio
-```
-Or download the wheel from [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio).
-
-**Voice not working:**
-- Run with `--no-voice` flag to skip voice entirely
-- Voice input requires a working microphone
-- Voice output requires system audio
-
-**Port already in use:**
-```bash
-python main.py --port 8080
-```
+- Your `GEMINI_API_KEY` is kept in your local `.env` file, which is strictly excluded from version control via `.gitignore`.
+- All system monitoring and hardware controls execute strictly on your local machine.
