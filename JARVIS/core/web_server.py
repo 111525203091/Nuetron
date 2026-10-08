@@ -154,6 +154,25 @@ def screenshot_endpoint():
     return jsonify({"result": result, "url": "/static/screenshots/latest.png"})
 
 
+@app.route("/api/apps")
+def list_apps():
+    """Return the full installed app catalog (UWP + Win32 Start Menu apps)."""
+    from skills.system_skills import SystemSkills
+    catalog = SystemSkills.get_app_catalog()
+    return jsonify({"apps": catalog, "count": len(catalog)})
+
+
+@app.route("/api/apps/refresh")
+def refresh_apps():
+    """Force rebuild of the installed app catalog."""
+    from skills.system_skills import SystemSkills
+    SystemSkills._catalog_built = False
+    catalog = SystemSkills.get_app_catalog()
+    return jsonify({"ok": True, "apps": catalog, "count": len(catalog)})
+
+
+
+
 
 # ─── Active session tracking ──────────────────────────────────────────────────
 _active_sid = None

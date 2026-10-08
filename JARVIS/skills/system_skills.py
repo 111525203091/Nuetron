@@ -157,82 +157,198 @@ class SystemSkills:
 
     # ─── App Launcher ─────────────────────────────────────────────────────────
 
-    @staticmethod
-    def open_application(app_name: str) -> str:
-        """Open a named application or terminal on Windows in a visible interactive window."""
-        app_map = {
-            # Terminals & Shells
-            "terminal": 'start "" wt || start "" powershell',
-            "windows terminal": 'start "" wt || start "" powershell',
-            "powershell": 'start "" powershell',
-            "cmd": 'start "" cmd',
-            "command prompt": 'start "" cmd',
-            "bash": 'start "" bash',
+    # Quick static overrides for common apps that need specific launch commands
+    _APP_CMD_OVERRIDES = {
+        "terminal": 'start "" wt || start "" powershell',
+        "windows terminal": 'start "" wt || start "" powershell',
+        "powershell": 'start "" powershell',
+        "cmd": 'start "" cmd',
+        "command prompt": 'start "" cmd',
+        "bash": 'start "" bash',
+        "file explorer": 'start explorer',
+        "explorer": 'start explorer',
+        "my computer": 'start explorer',
+        "this pc": 'start explorer',
+        "chrome": 'start "" chrome',
+        "google chrome": 'start "" chrome',
+        "firefox": 'start "" firefox',
+        "edge": 'start "" msedge',
+        "microsoft edge": 'start "" msedge',
+        "brave": 'start "" brave',
+        "notepad": 'start "" notepad',
+        "word": 'start "" winword',
+        "excel": 'start "" excel',
+        "powerpoint": 'start "" powerpnt',
+        "outlook": 'start "" outlook',
+        "teams": 'start "" teams',
+        "calculator": 'start calc',
+        "task manager": 'start taskmgr',
+        "control panel": 'start control',
+        "settings": 'start ms-settings:',
+        "windows settings": 'start ms-settings:',
+        "camera": 'start microsoft.windows.camera:',
+        "vlc": 'start "" vlc',
+        "spotify": 'start spotify: || start https://open.spotify.com',
+        "vscode": 'start "" code',
+        "vs code": 'start "" code',
+        "visual studio code": 'start "" code',
+        "pycharm": 'start "" pycharm64',
+        "android studio": 'start "" studio64',
+        "discord": 'start discord: || start https://discord.com/app',
+        "whatsapp": 'start whatsapp: || start https://web.whatsapp.com',
+        "telegram": 'start tg: || start https://web.telegram.org',
+        "paint": 'start mspaint',
+    }
 
-            # File Management
-            "file explorer": 'start explorer',
-            "explorer": 'start explorer',
-            "my computer": 'start explorer',
-            "this pc": 'start explorer',
+    # Cached app catalog (built once per session on first use)
+    _app_catalog: list = []
+    _catalog_built: bool = False
 
-            # Browsers
-            "chrome": 'start "" chrome',
-            "google chrome": 'start "" chrome',
-            "firefox": 'start "" firefox',
-            "edge": 'start "" msedge',
-            "browser": 'start "" msedge',
+    @classmethod
+    def build_app_catalog(cls) -> list:
+        """Return all installed apps: UWP via Get-StartApps + Win32 via Start Menu LNKs."""
+        import json as _json
+        apps = []
 
-            # Productivity
-            "notepad": 'start "" notepad',
-            "word": 'start "" winword',
-            "excel": 'start "" excel',
-            "powerpoint": 'start "" powerpnt',
-            "outlook": 'start "" outlook',
-            "teams": 'start "" teams',
+        # ── UWP / Store / Start Menu apps via Get-StartApps ──────────────────
+        try:
+            result = subprocess.run(
+                ['powershell', '-NoProfile', '-NonInteractive', '-Command',
+                 'Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress'],
+                capture_output=True, text=True, timeout=20
+            )
+            raw = (result.stdout or '').strip()
+            if raw:
+                parsed = _json.loads(raw)
+                if isinstance(parsed, dict):
+                    parsed = [parsed]   # single app returns object not array
+                for entry in parsed:
+                    if isinstance(entry, dict) and entry.get('Name'):
+                        apps.append({
+                            'name': str(entry.get('Name', '')).strip(),
+                            'app_id': str(entry.get('AppID', '')).strip(),
+                            'type': 'uwp',
+                        })
+        except Exception as e:
+            log.warning("build_app_catalog: Get-StartApps failed: %s", e)
 
-            # System tools
-            "calculator": 'start calc',
-            "task manager": 'start taskmgr',
-            "control panel": 'start control',
-            "settings": 'start ms-settings:',
-            "windows settings": 'start ms-settings:',
-            "camera": 'start microsoft.windows.camera:',
+        # ── Win32 apps via Start Menu .lnk shortcuts ──────────────────────────
+        startmenu_paths = []
+        appdata = os.environ.get('APPDATA', '')
+        programdata = os.environ.get('PROGRAMDATA', 'C:/ProgramData')
+        if appdata:
+            startmenu_paths.append(
+                Path(appdata) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs'
+            )
+        startmenu_paths.append(
+            Path(programdata) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs'
+        )
 
-            # Media
-            "vlc": 'start "" vlc',
-            "spotify": 'start spotify: || start https://open.spotify.com',
-            "media player": 'start wmplayer',
+        seen_names = {a['name'].lower() for a in apps}
+        for sm in startmenu_paths:
+            if not sm.exists():
+                continue
+            try:
+                for lnk in sm.rglob('*.lnk'):
+                    stem = lnk.stem.strip()
+                    if stem.lower() not in seen_names:
+                        apps.append({
+                            'name': stem,
+                            'app_id': str(lnk),
+                            'type': 'lnk',
+                        })
+                        seen_names.add(stem.lower())
+            except Exception:
+                pass
 
-            # Dev tools
-            "vscode": 'start "" code',
-            "vs code": 'start "" code',
-            "visual studio code": 'start "" code',
-            "pycharm": 'start "" pycharm64',
-            "android studio": 'start "" studio64',
+        log.info("build_app_catalog: discovered %d apps", len(apps))
+        return apps
 
-            # Communication & Social
-            "discord": 'start discord: || start https://discord.com/app',
-            "whatsapp": 'start whatsapp: || start https://web.whatsapp.com',
-            "telegram": 'start tg: || start https://web.telegram.org',
+    @classmethod
+    def get_app_catalog(cls) -> list:
+        """Return cached catalog, building it if needed."""
+        if not cls._catalog_built:
+            cls._app_catalog = cls.build_app_catalog()
+            cls._catalog_built = True
+        return cls._app_catalog
 
-            # Paint
-            "paint": 'start mspaint',
-            "paint 3d": 'start mspaint',
-        }
+    @classmethod
+    def _fuzzy_match_app(cls, name: str, catalog: list) -> dict | None:
+        """Find the best matching app entry for `name` using fuzzy matching."""
+        name_lower = name.lower().strip()
+        best_exact = None
+        best_startswith = None
+        best_contains = None
 
+        for app in catalog:
+            app_name_lower = app['name'].lower()
+            if app_name_lower == name_lower:
+                best_exact = app
+                break
+            if app_name_lower.startswith(name_lower) and best_startswith is None:
+                best_startswith = app
+            elif name_lower in app_name_lower and best_contains is None:
+                best_contains = app
+
+        return best_exact or best_startswith or best_contains
+
+    @classmethod
+    def launch_app_by_name(cls, app_name: str) -> str:
+        """
+        Fuzzy match and launch any installed app on the system.
+        Priority: static overrides → UWP catalog match → LNK launch → raw start.
+        """
         normalized = app_name.lower().strip()
-        cmd = app_map.get(normalized, f'start "" {normalized}')
 
+        # 1. Static overrides (terminals, browsers, etc.)
+        if normalized in cls._APP_CMD_OVERRIDES:
+            cmd = cls._APP_CMD_OVERRIDES[normalized]
+            try:
+                subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return f"Opening **{app_name}**, {OWNER_NAME}."
+            except Exception as e:
+                return f"Could not open {app_name}: {e}"
+
+        # 2. Dynamic catalog lookup
+        catalog = cls.get_app_catalog()
+        match = cls._fuzzy_match_app(app_name, catalog)
+
+        if match:
+            app_type = match['type']
+            app_id = match['app_id']
+            display_name = match['name']
+
+            try:
+                if app_type == 'lnk':
+                    subprocess.Popen(
+                        f'start "" "{app_id}"',
+                        shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                else:
+                    # UWP / Store app via shell:AppsFolder
+                    subprocess.Popen(
+                        f'explorer.exe "shell:AppsFolder\\{app_id}"',
+                        shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                return f"Launching **{display_name}**, {OWNER_NAME}."
+            except Exception as e:
+                log.warning("launch_app_by_name: launch failed for %s: %s", display_name, e)
+                return f"Found **{display_name}** but couldn't launch it: {e}"
+
+        # 3. Last-resort: just try `start "" <name>` (works for EXEs on PATH)
         try:
             subprocess.Popen(
-                cmd,
-                shell=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                f'start "" "{app_name}"',
+                shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
-            return f"Initiated execution of **{app_name}**, {OWNER_NAME}."
+            return f"Attempting to launch **{app_name}**, {OWNER_NAME}."
         except Exception as e:
-            return f"Could not open {app_name}: {str(e)}"
+            return f"I couldn't find or launch '{app_name}', {OWNER_NAME}. Please check the app name."
+
+    @staticmethod
+    def open_application(app_name: str) -> str:
+        """Open an application — delegates to launch_app_by_name."""
+        return SystemSkills.launch_app_by_name(app_name)
 
     @staticmethod
     def close_application(app_name: str) -> str:

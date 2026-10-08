@@ -100,8 +100,9 @@ class Dispatcher:
         # ─── App Control ──────────────────────────────────────────────────────
         elif action == "open_app":
             app = target
-            result = self.sys.open_application(app)
+            result = self.sys.launch_app_by_name(app)
             return result
+
 
         elif action == "close_app":
             app = target
