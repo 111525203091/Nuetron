@@ -76,6 +76,13 @@ function initSocket() {
       speakText(data.message);
     }
     addHistory(data.message.substring(0, 60) + '...');
+
+    // Auto-open HUD terminal if terminal app was requested
+    if (data.intent === 'open_app' && data.message && data.message.toLowerCase().includes('terminal')) {
+      if (typeof window.openUltronTerminal === 'function') {
+        window.openUltronTerminal();
+      }
+    }
   });
 
   state.socket.on('error', (data) => {
@@ -580,6 +587,7 @@ function initTerminal() {
       appendTermLine('system', '📂 Working directory: ' + (currentCwd || '~'));
     }
   }
+  window.openUltronTerminal = openTerminal;
 
   function closeTerminal() {
     overlay.classList.add('hidden');

@@ -101,7 +101,7 @@ class Dispatcher:
         elif action == "open_app":
             app = target
             result = self.sys.open_application(app)
-            return f"Initiated execution of **{app}**, {OWNER_NAME}."
+            return result
 
         elif action == "close_app":
             app = target

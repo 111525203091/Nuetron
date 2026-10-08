@@ -159,56 +159,67 @@ class SystemSkills:
 
     @staticmethod
     def open_application(app_name: str) -> str:
-        """Open a named application on Windows."""
+        """Open a named application or terminal on Windows in a visible interactive window."""
         app_map = {
+            # Terminals & Shells
+            "terminal": 'start "" wt || start "" powershell',
+            "windows terminal": 'start "" wt || start "" powershell',
+            "powershell": 'start "" powershell',
+            "cmd": 'start "" cmd',
+            "command prompt": 'start "" cmd',
+            "bash": 'start "" bash',
+
+            # File Management
+            "file explorer": 'start "" explorer',
+            "explorer": 'start "" explorer',
+            "my computer": 'start "" explorer',
+            "this pc": 'start "" explorer',
+
             # Browsers
-            "chrome": "chrome",
-            "firefox": "firefox",
-            "edge": "msedge",
-            "browser": "msedge",
+            "chrome": 'start "" chrome',
+            "google chrome": 'start "" chrome',
+            "firefox": 'start "" firefox',
+            "edge": 'start "" msedge',
+            "browser": 'start "" msedge',
 
             # Productivity
-            "notepad": "notepad",
-            "word": "winword",
-            "excel": "excel",
-            "powerpoint": "powerpnt",
-            "outlook": "outlook",
-            "teams": "teams",
+            "notepad": 'start "" notepad',
+            "word": 'start "" winword',
+            "excel": 'start "" excel',
+            "powerpoint": 'start "" powerpnt',
+            "outlook": 'start "" outlook',
+            "teams": 'start "" teams',
 
             # System tools
-            "calculator": "calc",
-            "task manager": "taskmgr",
-            "control panel": "control",
-            "file explorer": "explorer",
-            "explorer": "explorer",
-            "cmd": "cmd",
-            "powershell": "powershell",
-            "terminal": "wt",
+            "calculator": 'start "" calc',
+            "task manager": 'start "" taskmgr',
+            "control panel": 'start "" control',
+            "settings": 'start "" ms-settings:',
 
             # Media
-            "vlc": "vlc",
-            "spotify": "spotify",
-            "media player": "wmplayer",
+            "vlc": 'start "" vlc',
+            "spotify": 'start "" spotify',
+            "media player": 'start "" wmplayer',
 
             # Dev tools
-            "vscode": "code",
-            "vs code": "code",
-            "visual studio code": "code",
-            "pycharm": "pycharm64",
-            "android studio": "studio64",
+            "vscode": 'start "" code',
+            "vs code": 'start "" code',
+            "visual studio code": 'start "" code',
+            "pycharm": 'start "" pycharm64',
+            "android studio": 'start "" studio64',
 
             # Communication
-            "discord": "discord",
-            "whatsapp": "whatsapp",
-            "telegram": "telegram",
+            "discord": 'start "" discord',
+            "whatsapp": 'start "" whatsapp',
+            "telegram": 'start "" telegram',
 
             # Paint
-            "paint": "mspaint",
-            "paint 3d": "mspaint",
+            "paint": 'start "" mspaint',
+            "paint 3d": 'start "" mspaint',
         }
 
         normalized = app_name.lower().strip()
-        cmd = app_map.get(normalized, normalized)
+        cmd = app_map.get(normalized, f'start "" {normalized}')
 
         try:
             subprocess.Popen(
@@ -217,7 +228,7 @@ class SystemSkills:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            return f"Opening {app_name}..."
+            return f"Initiated execution of **{app_name}**, {OWNER_NAME}."
         except Exception as e:
             return f"Could not open {app_name}: {str(e)}"
 
