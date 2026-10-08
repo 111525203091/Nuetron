@@ -40,9 +40,16 @@ class IntentParser:
         (r"\b(public ip|my ip|ip address)\b", "get_public_ip", {}),
         (r"\b(internet (status|connection|online))\b", "check_internet", {}),
 
-        # App control
-        (r"\b(open|launch|start|run) (.+)", "open_app", {"group": 2}),
-        (r"\b(close|kill|exit|quit) (.+)", "close_app", {"group": 2}),
+        # Terminal / Shell Commands (High Priority)
+        (r"^(?:run|execute|exec)\s+(?:the\s+)?(?:command\s+|in\s+terminal\s+|in\s+shell\s+)?[:\s]*(.+)", "run_terminal", {"group": 1}),
+        (r"^(?:terminal|shell|powershell|cmd)[:\s]+(.+)", "run_terminal", {"group": 1}),
+        (r"\b(?:in\s+terminal|using\s+terminal|via\s+terminal)\s*[:,]?\s*(.+)", "run_terminal", {"group": 1}),
+        # Direct CLI commands
+        (r"^(?:ipconfig|ifconfig|dir|ls|ping\b|whoami|git\b|pip\b|npm\b|npx\b|node\b|python\b|curl\b|systeminfo|tasklist|netstat|tree\b|echo\b|cat\b|type\b|mkdir\b|rmdir\b)(?:[\s].*)?$", "run_terminal", {"raw_target": True}),
+
+        # App control (GUI apps only: open, launch, start)
+        (r"^(?:open|launch|start)\s+(?:app|application)?\s*(.+)", "open_app", {"group": 1}),
+        (r"^(?:close|kill|quit)\s+(?:app|application)?\s*(.+)", "close_app", {"group": 1}),
 
         # Search
         (r"\b(search|google|look up|find|search for) (.+)", "search_web", {"group": 2}),
@@ -101,10 +108,6 @@ class IntentParser:
         (r"\bflip a coin\b", "flip_coin", {}),
         (r"\broll (a )?dice?\b", "roll_dice", {}),
 
-        # Terminal / Shell
-        (r"^(?:run|execute|terminal|shell|cmd|command)[:\s]+(.+)", "run_terminal", {"group": 1}),
-        (r"^(?:run|execute)\s+(?:the\s+)?(?:command\s+)?[`'\"](.+)[`'\"]", "run_terminal", {"group": 1}),
-
         # Location
         (r"\b(where am i|my location|current location|detect location|what city am i in|what country am i in)\b", "get_location", {}),
         (r"\b(local weather|weather here|weather at my location|weather near me)\b", "get_local_weather", {}),
@@ -125,38 +128,42 @@ class IntentParser:
         Parse user input into an Intent.
         Returns an Intent with action='chat' if no pattern matches.
         """
-        text_lower = text.lower().strip()
+        text_clean = text.strip()
+        text_lower = text_clean.lower()
 
         for pattern, action, config in cls.PATTERNS:
             match = re.search(pattern, text_lower, re.IGNORECASE)
             if match:
                 params = {}
+                target = ""
 
-                # Extract group captures
-                if "group" in config:
+                if config.get("raw_target"):
+                    target = text_clean
+                elif "group" in config:
                     try:
-                        params["target"] = match.group(config["group"]).strip()
+                        span = match.span(config["group"])
+                        target = text_clean[span[0]:span[1]].strip()
                     except IndexError:
                         pass
 
                 # Special: reminder has two groups
                 if "msg_group" in config and "time_group" in config:
                     try:
-                        params["message"] = match.group(config["msg_group"]).strip()
+                        span_msg = match.span(config["msg_group"])
+                        params["message"] = text_clean[span_msg[0]:span_msg[1]].strip()
                         time_start = match.start(config["time_group"])
-                        params["when"] = text_lower[time_start:].strip()
+                        params["when"] = text_clean[time_start:].strip()
                     except IndexError:
                         pass
 
                 if "mute" in config:
                     params["mute"] = config["mute"]
 
-                target = params.pop("target", "")
                 return Intent(
                     action=action,
                     target=target,
                     params=params,
-                    raw=text
+                    raw=text_clean
                 )
 
         # No pattern matched — send to AI brain

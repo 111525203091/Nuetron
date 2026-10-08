@@ -179,6 +179,20 @@ Timezone: Local system time
                 f"Operating in local protocol mode. All local system tools, diagnostics, and controls remain active."
             )
 
+        # Autonomous Terminal Execution Handler
+        if reply:
+            import re as _re
+            exec_cmds = _re.findall(r"\[(?:EXEC|TERMINAL):\s*(.+?)\]", reply, _re.IGNORECASE)
+            if exec_cmds:
+                from skills.system_skills import SystemSkills
+                for cmd in exec_cmds:
+                    clean_cmd = cmd.strip()
+                    log.info("ULTRON executing autonomous command: %s", clean_cmd)
+                    exec_res = SystemSkills.run_terminal_command(clean_cmd)
+                    formatted = SystemSkills.format_terminal_result(exec_res)
+                    tag_regex = _re.compile(rf"\[(?:EXEC|TERMINAL):\s*{_re.escape(cmd)}\]", _re.IGNORECASE)
+                    reply = tag_regex.sub(lambda _m, f=formatted: f"\n\n{f}\n\n", reply)
+
         # Log to conversation history
         self.conversation_history.append({
             "role": "user",
