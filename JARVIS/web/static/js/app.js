@@ -270,33 +270,58 @@ function initVoice() {
 
 function speakText(text) {
   if (!state.speechSynth) return;
-  // Strip markdown
-  const clean = text
-    .replace(/#{1,6} /g, '')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/`(.*?)`/g, '$1')
-    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-    .replace(/•/g, '')
-    .substring(0, 500); // Don't speak too much
+
+  // Clean text of markdown, code blocks, raw URLs, and formatting for natural speech
+  let clean = text
+    .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/https?:\/\/\S+/g, 'link')
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[•\-\*]\s+/g, '')
+    .trim();
+
+  if (!clean) return;
+
+  // Cap speech length to avoid drone-on, but keep full thought
+  if (clean.length > 400) {
+    clean = clean.substring(0, 397) + '...';
+  }
 
   state.speechSynth.cancel();
   const utt = new SpeechSynthesisUtterance(clean);
-  utt.rate = 1.05;
-  utt.pitch = 0.9;
-  utt.volume = 1;
 
-  // Pick a male voice if available
+  // Human conversational tuning: slightly relaxed rate, natural warm pitch
+  utt.rate = 1.0;
+  utt.pitch = 1.02;
+  utt.volume = 1.0;
+
+  // Prioritize modern neural and natural voices
   const voices = state.speechSynth.getVoices();
-  const maleVoice = voices.find(v =>
-    v.name.toLowerCase().includes('male') ||
-    v.name.toLowerCase().includes('google uk english male') ||
-    v.name.toLowerCase().includes('david')
-  );
-  if (maleVoice) utt.voice = maleVoice;
+  const naturalVoice = voices.find(v => {
+    const name = v.name.toLowerCase();
+    return (
+      (name.includes('natural') || name.includes('online') || name.includes('neural')) &&
+      v.lang.startsWith('en')
+    );
+  }) || voices.find(v => {
+    const name = v.name.toLowerCase();
+    return (
+      (name.includes('guy') || name.includes('christopher') || name.includes('ryan') ||
+       name.includes('google us english') || name.includes('david')) &&
+      v.lang.startsWith('en')
+    );
+  }) || voices.find(v => v.lang.startsWith('en'));
+
+  if (naturalVoice) {
+    utt.voice = naturalVoice;
+  }
 
   state.speechSynth.speak(utt);
 }
+
 
 function startVoiceInput() {
   if (!state.recognition) {

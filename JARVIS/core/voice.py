@@ -38,15 +38,28 @@ class VoiceEngine:
         log.info("Voice engine initialized.")
 
     def _init_tts(self):
-        """Initialize text-to-speech engine."""
+        """Initialize text-to-speech engine with natural cadence."""
         try:
             self.tts = pyttsx3.init()
-            self.tts.setProperty("rate", VOICE_RATE)
+            # 165-170 WPM produces the most natural conversational human cadence
+            natural_rate = min(175, max(155, VOICE_RATE))
+            self.tts.setProperty("rate", natural_rate)
             self.tts.setProperty("volume", VOICE_VOLUME)
 
             voices = self.tts.getProperty("voices")
-            if voices and len(voices) > VOICE_INDEX:
-                self.tts.setProperty("voice", voices[VOICE_INDEX].id)
+            if voices:
+                selected_voice = None
+                # Prioritize natural/online sounding voice if installed
+                for v in voices:
+                    name = v.name.lower()
+                    if "natural" in name or "george" in name or "hazel" in name or "david" in name:
+                        selected_voice = v.id
+                        break
+                if not selected_voice and len(voices) > VOICE_INDEX:
+                    selected_voice = voices[VOICE_INDEX].id
+
+                if selected_voice:
+                    self.tts.setProperty("voice", selected_voice)
 
             self.tts_available = True
             log.info("TTS initialized with %d voices available.", len(voices or []))
