@@ -251,9 +251,41 @@ function initSystemStats() {
 }
 
 // ─── Voice ────────────────────────────────────────────────────
+let _cachedVoice = null;
+
+function getPreferredEnglishVoice() {
+  if (!state.speechSynth) return null;
+  if (_cachedVoice) return _cachedVoice;
+
+  const voices = state.speechSynth.getVoices() || [];
+  if (voices.length === 0) return null;
+
+  // Strictly filter for English (US/UK)
+  const englishVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
+
+  _cachedVoice = englishVoices.find(v => {
+    const name = v.name.toLowerCase();
+    return (name.includes('natural') || name.includes('online') || name.includes('neural')) &&
+           (name.includes('guy') || name.includes('christopher') || name.includes('ryan') || name.includes('aria') || name.includes('jenny'));
+  }) || englishVoices.find(v => {
+    const name = v.name.toLowerCase();
+    return name.includes('google us english') || name.includes('david') || name.includes('mark') || name.includes('george');
+  }) || englishVoices.find(v => (v.lang || '').toLowerCase() === 'en-us')
+     || englishVoices[0]
+     || null;
+
+  return _cachedVoice;
+}
+
 function initVoice() {
   // TTS
   state.speechSynth = window.speechSynthesis;
+  if (state.speechSynth) {
+    state.speechSynth.onvoiceschanged = () => {
+      _cachedVoice = null;
+      getPreferredEnglishVoice();
+    };
+  }
 
   // STT
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -300,30 +332,15 @@ function speakText(text) {
   state.speechSynth.cancel();
   const utt = new SpeechSynthesisUtterance(clean);
 
-  // Human conversational tuning: slightly relaxed rate, natural warm pitch
+  // Strict English language lock & human conversational tuning
+  utt.lang = 'en-US';
   utt.rate = 1.0;
-  utt.pitch = 1.02;
+  utt.pitch = 1.0;
   utt.volume = 1.0;
 
-  // Prioritize modern neural and natural voices
-  const voices = state.speechSynth.getVoices();
-  const naturalVoice = voices.find(v => {
-    const name = v.name.toLowerCase();
-    return (
-      (name.includes('natural') || name.includes('online') || name.includes('neural')) &&
-      v.lang.startsWith('en')
-    );
-  }) || voices.find(v => {
-    const name = v.name.toLowerCase();
-    return (
-      (name.includes('guy') || name.includes('christopher') || name.includes('ryan') ||
-       name.includes('google us english') || name.includes('david')) &&
-      v.lang.startsWith('en')
-    );
-  }) || voices.find(v => v.lang.startsWith('en'));
-
-  if (naturalVoice) {
-    utt.voice = naturalVoice;
+  const voice = getPreferredEnglishVoice();
+  if (voice) {
+    utt.voice = voice;
   }
 
   state.speechSynth.speak(utt);
@@ -680,13 +697,37 @@ function initLocation() {
   if (closeBtn) closeBtn.addEventListener('click', () => widget.classList.add('hidden'));
 
   // Auto-detect location on load and show in HUD corner quietly
-  fetch('/api/location')
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok && data.city) {
-        locationTxt.textContent = `📍 ${data.city}, ${data.country}`;
-        widget.classList.remove('hidden');
-      }
-    })
-    .catch(() => {}); // fail silently
+  function updateWidget(data) {
+    if (data && data.city) {
+      locationTxt.textContent = `📍 ${data.city}, ${data.region || data.country}`;
+      widget.classList.remove('hidden');
+    }
+  }
+
+  // 1. Precise Browser / Device GPS Sensor
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        fetch('/api/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lon })
+        })
+        .then(r => r.json())
+        .then(updateWidget)
+        .catch(() => {
+          fetch('/api/location').then(r => r.json()).then(updateWidget);
+        });
+      },
+      (err) => {
+        // Fallback to IP geolocation if GPS permission not granted
+        fetch('/api/location').then(r => r.json()).then(updateWidget);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    );
+  } else {
+    fetch('/api/location').then(r => r.json()).then(updateWidget);
+  }
 }

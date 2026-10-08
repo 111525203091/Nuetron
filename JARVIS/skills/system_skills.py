@@ -170,10 +170,10 @@ class SystemSkills:
             "bash": 'start "" bash',
 
             # File Management
-            "file explorer": 'start "" explorer',
-            "explorer": 'start "" explorer',
-            "my computer": 'start "" explorer',
-            "this pc": 'start "" explorer',
+            "file explorer": 'start explorer',
+            "explorer": 'start explorer',
+            "my computer": 'start explorer',
+            "this pc": 'start explorer',
 
             # Browsers
             "chrome": 'start "" chrome',
@@ -191,15 +191,17 @@ class SystemSkills:
             "teams": 'start "" teams',
 
             # System tools
-            "calculator": 'start "" calc',
-            "task manager": 'start "" taskmgr',
-            "control panel": 'start "" control',
-            "settings": 'start "" ms-settings:',
+            "calculator": 'start calc',
+            "task manager": 'start taskmgr',
+            "control panel": 'start control',
+            "settings": 'start ms-settings:',
+            "windows settings": 'start ms-settings:',
+            "camera": 'start microsoft.windows.camera:',
 
             # Media
             "vlc": 'start "" vlc',
-            "spotify": 'start "" spotify',
-            "media player": 'start "" wmplayer',
+            "spotify": 'start spotify: || start https://open.spotify.com',
+            "media player": 'start wmplayer',
 
             # Dev tools
             "vscode": 'start "" code',
@@ -208,14 +210,14 @@ class SystemSkills:
             "pycharm": 'start "" pycharm64',
             "android studio": 'start "" studio64',
 
-            # Communication
-            "discord": 'start "" discord',
-            "whatsapp": 'start "" whatsapp',
-            "telegram": 'start "" telegram',
+            # Communication & Social
+            "discord": 'start discord: || start https://discord.com/app',
+            "whatsapp": 'start whatsapp: || start https://web.whatsapp.com',
+            "telegram": 'start tg: || start https://web.telegram.org',
 
             # Paint
-            "paint": 'start "" mspaint',
-            "paint 3d": 'start "" mspaint',
+            "paint": 'start mspaint',
+            "paint 3d": 'start mspaint',
         }
 
         normalized = app_name.lower().strip()

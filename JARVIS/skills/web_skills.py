@@ -262,20 +262,111 @@ class WebSkills:
         except Exception as e:
             return f"WolframAlpha error: {str(e)}"
 
-    # ─── Location Detection ────────────────────────────────────────────────────
+    # ─── Location Detection & Setting ──────────────────────────────────────────
 
-    @staticmethod
-    def get_location() -> dict:
-        """
-        Detect user's current location via IP geolocation.
-        Returns a structured dict with city, region, country, lat/lon, timezone, ISP.
-        """
+    _cached_location = None
+
+    @classmethod
+    def update_gps_location(cls, lat: float, lon: float) -> dict:
+        """Update user's location via precise GPS/browser coordinates using reverse geocoding."""
         try:
-            # ip-api.com free tier — no key required
+            url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lon}&localityLanguage=en"
+            r = requests.get(url, timeout=5)
+            data = r.json()
+            city = data.get("city") or data.get("locality") or data.get("principalSubdivision") or "Unknown City"
+            region = data.get("principalSubdivision") or ""
+            country = data.get("countryName") or ""
+            postcode = data.get("postcode") or ""
+
+            cls._cached_location = {
+                "ok": True,
+                "city": city,
+                "region": region,
+                "country": country,
+                "lat": lat,
+                "lon": lon,
+                "postcode": postcode,
+                "source": "Browser GPS / Device Sensor",
+            }
+            log.info("Location updated via GPS coordinates: %s, %s, %s", city, region, country)
+            return cls._cached_location
+        except Exception as e:
+            log.error("GPS reverse geocoding failed: %s", str(e))
+            return {"ok": False, "error": str(e)}
+
+    @classmethod
+    def set_custom_location(cls, place: str) -> str:
+        """Manually set and persist the user's location to any city or region."""
+        try:
+            city, region, country, lat, lon, timezone = place, "", "", 0.0, 0.0, ""
+
+            # 1. Primary: Nominatim OpenStreetMap (supports all city aliases, regions, languages)
+            try:
+                headers = {"User-Agent": "ULTRON-Assistant/2.0"}
+                nom_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(place)}&format=json&limit=1"
+                nom_res = requests.get(nom_url, headers=headers, timeout=4).json()
+                if nom_res and len(nom_res) > 0:
+                    item = nom_res[0]
+                    display = item.get("display_name", place)
+                    parts = [p.strip() for p in display.split(",")]
+                    city = parts[0] if parts else place
+                    country = parts[-1] if len(parts) > 1 else ""
+                    region = parts[-2] if len(parts) > 2 else ""
+                    lat = float(item.get("lat", 0))
+                    lon = float(item.get("lon", 0))
+            except Exception:
+                pass
+
+            # 2. Fallback: Open-Meteo geocoding
+            if not lat and not lon:
+                geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(place)}&count=1&language=en&format=json"
+                geo_res = requests.get(geo_url, timeout=4).json()
+                if geo_res.get("results"):
+                    loc = geo_res["results"][0]
+                    city = loc.get("name", place)
+                    region = loc.get("admin1", "")
+                    country = loc.get("country", "")
+                    lat = float(loc.get("latitude", 0))
+                    lon = float(loc.get("longitude", 0))
+                    timezone = loc.get("timezone", "")
+
+            if not lat and not lon:
+                return f"Could not find coordinates for location '{place}', {OWNER_NAME}. Please check the spelling."
+
+            cls._cached_location = {
+                "ok": True,
+                "city": city,
+                "region": region,
+                "country": country,
+                "lat": lat,
+                "lon": lon,
+                "timezone": timezone or "Local",
+                "source": "Manual User Configuration",
+            }
+            return (
+                f"📍 Location successfully updated to **{city}**, {region} ({country})!\n"
+                f"• Coordinates: {lat:.4f}°N, {lon:.4f}°E\n"
+                f"All weather and local queries will now reflect this location."
+            )
+        except Exception as e:
+            return f"Failed to set location: {str(e)}"
+
+    @classmethod
+    def get_location(cls) -> dict:
+        """
+        Get user's location using highest available precision:
+        1. Browser GPS (if sent by client)
+        2. Manually configured city
+        3. IP Geolocation fallback
+        """
+        if cls._cached_location and cls._cached_location.get("ok"):
+            return cls._cached_location
+
+        try:
             r = requests.get("http://ip-api.com/json/?fields=status,message,country,regionName,city,lat,lon,timezone,isp,query", timeout=4)
             data = r.json()
             if data.get("status") == "success":
-                return {
+                cls._cached_location = {
                     "ok": True,
                     "ip": data.get("query", ""),
                     "city": data.get("city", ""),
@@ -285,38 +376,39 @@ class WebSkills:
                     "lon": data.get("lon", 0),
                     "timezone": data.get("timezone", ""),
                     "isp": data.get("isp", ""),
+                    "source": "IP Geolocation",
                 }
+                return cls._cached_location
             return {"ok": False, "error": data.get("message", "Unknown error")}
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
-    @staticmethod
-    def get_location_string() -> str:
+    @classmethod
+    def get_location_string(cls) -> str:
         """Return a formatted location string for the user."""
-        loc = WebSkills.get_location()
+        loc = cls.get_location()
         if not loc.get("ok"):
             return f"Location unavailable: {loc.get('error', 'Unknown error')}"
+        src = loc.get("source", "Detected")
         return (
-            f"📍 Your Location:\n"
-            f"  • City: {loc['city']}, {loc['region']}\n"
-            f"  • Country: {loc['country']}\n"
-            f"  • Coordinates: {loc['lat']}°N, {loc['lon']}°E\n"
-            f"  • Timezone: {loc['timezone']}\n"
-            f"  • ISP: {loc['isp']}\n"
-            f"  • IP Address: {loc['ip']}"
+            f"📍 Current Location ({src}):\n"
+            f"  • City: {loc.get('city')}, {loc.get('region')}\n"
+            f"  • Country: {loc.get('country')}\n"
+            f"  • Coordinates: {loc.get('lat')}°N, {loc.get('lon')}°E\n"
+            f"  • Source: {src}\n\n"
+            f"💡 *Tip: To change this, say: 'set my location to [your city]'*"
         )
 
-    @staticmethod
-    def get_local_weather() -> str:
+    @classmethod
+    def get_local_weather(cls) -> str:
         """Get weather for the user's current detected location."""
-        loc = WebSkills.get_location()
+        loc = cls.get_location()
         if not loc.get("ok"):
             return f"Could not auto-detect location: {loc.get('error')}"
         city = loc.get("city", "")
-        country = loc.get("country", "")
         if not city:
-            return "Could not determine your city from your IP location."
-        result = WebSkills.get_weather(city)
+            return "Could not determine your city."
+        result = cls.get_weather(city)
         return result
 
     # ─── Fetch URL Content ─────────────────────────────────────────────────────

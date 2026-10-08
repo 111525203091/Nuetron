@@ -109,6 +109,8 @@ class IntentParser:
         (r"\broll (a )?dice?\b", "roll_dice", {}),
 
         # Location
+        (r"^(?:set|change|update)\s+(?:my\s+)?location\s+(?:to\s+)?(.+)", "set_location", {"group": 1}),
+        (r"^(?:my\s+location\s+is|i\s+live\s+in|i\s+am\s+in|i'm\s+in)\s+(.+)", "set_location", {"group": 1}),
         (r"\b(where am i|my location|current location|detect location|what city am i in|what country am i in)\b", "get_location", {}),
         (r"\b(local weather|weather here|weather at my location|weather near me)\b", "get_local_weather", {}),
 

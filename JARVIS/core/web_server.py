@@ -108,10 +108,21 @@ def terminal():
     return jsonify(result)
 
 
-@app.route("/api/location")
+@app.route("/api/location", methods=["GET", "POST"])
 def location():
-    """Return the user's detected location via IP geolocation."""
+    """Return or update the user's detected location via IP or GPS geolocation."""
     from skills.web_skills import WebSkills
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        lat = data.get("lat")
+        lon = data.get("lon")
+        city = data.get("city")
+        if lat is not None and lon is not None:
+            res = WebSkills.update_gps_location(float(lat), float(lon))
+            return jsonify(res)
+        elif city:
+            res = WebSkills.set_custom_location(str(city))
+            return jsonify({"ok": True, "message": res, "location": WebSkills.get_location()})
     loc = WebSkills.get_location()
     return jsonify(loc)
 
@@ -194,11 +205,6 @@ def on_message(data):
                 socketio.emit("response", {"message": response, "intent": intent_action})
                 socketio.emit("thinking", {"status": False})
 
-        try:
-            if _voice and _voice.tts_available and response:
-                _voice.speak(response)
-        except Exception:
-            pass
 
     socketio.start_background_task(process)
 

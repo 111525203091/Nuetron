@@ -132,6 +132,11 @@ class Dispatcher:
             return f"**Terminal** [{status}], {OWNER_NAME}:\n\n{formatted}"
 
         # ─── Location ─────────────────────────────────────────────────────────
+        elif action == "set_location":
+            place = target or intent.raw
+            result = self.web.set_custom_location(place)
+            return result
+
         elif action == "get_location":
             info = self.web.get_location_string()
             return f"{info}"
