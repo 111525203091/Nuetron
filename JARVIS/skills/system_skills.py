@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 from core.logger import log
+from core.config import OWNER_NAME
 
 
 import threading as _threading
@@ -333,19 +334,66 @@ class SystemSkills:
 
     @staticmethod
     def take_screenshot(save_path: Optional[str] = None) -> str:
-        """Take a screenshot and optionally save it."""
+        """
+        Take a screenshot on Windows without relying on PIL/pyautogui
+        (which fail on Python 3.15 due to C-extension slot ID incompatibility).
+        Uses native Windows GDI+ via PowerShell and saves to both the user's
+        Desktop and the web HUD screenshots directory for live preview.
+        """
         try:
-            import pyautogui
-            from PIL import Image
-            
-            screenshot = pyautogui.screenshot()
-            
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ultron_screenshot_{ts}.png"
+
+            # Determine Desktop path (supports OneDrive Desktop if present)
+            desktop_dir = Path.home() / "OneDrive" / "Desktop"
+            if not desktop_dir.is_dir():
+                desktop_dir = Path.home() / "Desktop"
+
             if not save_path:
-                ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                save_path = str(Path.home() / "Desktop" / f"jarvis_screenshot_{ts}.png")
-            
-            screenshot.save(save_path)
-            return f"Screenshot saved to: {save_path}"
+                target_file = desktop_dir / filename
+            else:
+                target_file = Path(save_path)
+
+            target_file.parent.mkdir(parents=True, exist_ok=True)
+            abs_target = str(target_file.resolve())
+
+            # Static screenshots directory for Web HUD preview
+            web_screenshots_dir = Path(__file__).resolve().parent.parent / "web" / "static" / "screenshots"
+            web_screenshots_dir.mkdir(parents=True, exist_ok=True)
+            web_file = web_screenshots_dir / "latest.png"
+            abs_web = str(web_file.resolve())
+
+            # Native PowerShell GDI+ script
+            ps_script = f"""
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+$screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$bitmap = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+$graphics.CopyFromScreen($screen.X, $screen.Y, 0, 0, $screen.Size, [System.Drawing.CopyPixelOperation]::SourceCopy)
+$bitmap.Save('{abs_target}', [System.Drawing.Imaging.ImageFormat]::Png)
+$bitmap.Save('{abs_web}', [System.Drawing.Imaging.ImageFormat]::Png)
+$graphics.Dispose()
+$bitmap.Dispose()
+"""
+            res = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if target_file.exists() and target_file.stat().st_size > 0:
+                return (
+                    f"📸 **Screenshot captured successfully**, {OWNER_NAME}!\n\n"
+                    f"• **Saved to:** `{abs_target}`\n"
+                    f"• **File size:** {target_file.stat().st_size // 1024} KB\n"
+                    f"• **Web Preview:** [/static/screenshots/latest.png](/static/screenshots/latest.png)"
+                )
+            else:
+                # If background service execution limits GDI, provide clear fallback
+                err_msg = res.stderr.strip() if res.stderr else "Unknown capture failure"
+                return f"Could not capture screen: {err_msg}"
+
         except Exception as e:
             return f"Screenshot error: {str(e)}"
 

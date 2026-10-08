@@ -155,9 +155,25 @@ function appendMessage(role, text, isError = false) {
 
   const avatar = isJarvis ? 'U' : '⬡';
   const name   = isJarvis ? 'ULTRON' : 'YOU';
-  const parsedText = isJarvis
+  let parsedText = isJarvis
     ? (typeof marked !== 'undefined' ? marked.parse(text) : escapeHtml(text))
     : `<p>${escapeHtml(text)}</p>`;
+
+  // Check if message references screenshot and inject preview
+  if (isJarvis && text.includes('/static/screenshots/latest.png')) {
+    const timestamp = Date.now();
+    parsedText += `
+      <div class="screenshot-preview-card" style="margin-top:12px; border:1px solid rgba(255,23,68,0.4); border-radius:6px; overflow:hidden; max-width:480px; background:#0c0c12;">
+        <a href="/static/screenshots/latest.png?t=${timestamp}" target="_blank">
+          <img src="/static/screenshots/latest.png?t=${timestamp}" alt="ULTRON Screenshot" style="width:100%; display:block; cursor:pointer;" title="Click to view full size" />
+        </a>
+        <div style="padding:6px 10px; font-size:0.75rem; color:rgba(255,255,255,0.6); display:flex; justify-content:space-between; align-items:center;">
+          <span>🖥️ Captured Display</span>
+          <a href="/static/screenshots/latest.png?t=${timestamp}" download="ultron_screenshot.png" style="color:#ff1744; text-decoration:none; font-weight:600;">Download 💾</a>
+        </div>
+      </div>
+    `;
+  }
 
   msgEl.innerHTML = `
     <div class="msg-avatar">${avatar}</div>

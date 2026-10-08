@@ -116,6 +116,34 @@ def location():
     return jsonify(loc)
 
 
+@app.route("/api/screenshot", methods=["GET", "POST"])
+def screenshot_endpoint():
+    """Trigger or upload a screenshot."""
+    from skills.system_skills import SystemSkills
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        image_b64 = data.get("image")
+        if image_b64:
+            # Client provided base64 screenshot from browser
+            import base64
+            try:
+                if "," in image_b64:
+                    image_b64 = image_b64.split(",", 1)[1]
+                raw_bytes = base64.b64decode(image_b64)
+                web_screenshots_dir = Path(__file__).resolve().parent.parent / "web" / "static" / "screenshots"
+                web_screenshots_dir.mkdir(parents=True, exist_ok=True)
+                latest_path = web_screenshots_dir / "latest.png"
+                with open(latest_path, "wb") as f:
+                    f.write(raw_bytes)
+                return jsonify({"ok": True, "url": "/static/screenshots/latest.png"})
+            except Exception as e:
+                return jsonify({"ok": False, "error": str(e)}), 400
+
+    result = SystemSkills.take_screenshot()
+    return jsonify({"result": result, "url": "/static/screenshots/latest.png"})
+
+
+
 # ─── Active session tracking ──────────────────────────────────────────────────
 _active_sid = None
 
