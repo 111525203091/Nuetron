@@ -250,162 +250,205 @@ function initSystemStats() {
   setInterval(fetchStats, 5000); // Poll every 5s for smooth live readings
 }
 
-// ─── ULTRON Voice Engine ───────────────────────────────────────────────────
-// Uses edge-tts (GuyNeural) backend + Web Audio API for metallic Ultron effect.
+// ─── ULTRON Voice Engine (Age of Ultron) ───────────────────────────────────
+// Emulates James Spader's iconic vocal performance from Avengers: Age of Ultron:
+// - Microsoft Natural Neural Baritone AI modeling (Christopher / Guy Online Natural)
+// - Fundamental frequency deepened to menacing chest resonance (pitch: 0.72)
+// - Theatrical, chilling, calculated cadence (rate: 0.86)
+// - Full UI customization panel with real-time sliders and voice tester
 
-let _ultronAudioCtx = null;
-let _cachedVoice = null;
-let _currentAudioSource = null;   // track playing source so we can cancel
-
-function getUltronAudioCtx() {
-  if (!_ultronAudioCtx || _ultronAudioCtx.state === 'closed') {
-    _ultronAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  return _ultronAudioCtx;
-}
+let _cachedUltronVoice = null;
+let _ultronPitch = parseFloat(localStorage.getItem('ultron_pitch') || '0.72');
+let _ultronRate  = parseFloat(localStorage.getItem('ultron_rate') || '0.86');
+let _selectedVoiceURI = localStorage.getItem('ultron_voice_uri') || '';
 
 /**
- * Build the Ultron Web Audio effects chain:
- * Recreates the iconic James Spader Ultron sound from Avengers: Age of Ultron:
- *   1. Pitch shift down (playbackRate 0.87) for commanding bass baritone.
- *   2. Core Vocal Path: Heavy chest warmth (180 Hz) + crisp vocal presence (2.5 kHz).
- *   3. Parallel Chassis Resonator: Dual-peak metallic filter (1.6 kHz & 3.1 kHz) + micro-comb delay (7.5ms).
- *   4. Analog metallic saturation via WaveShaper.
- *   5. Punchy studio dynamics compressor to deliver every word with menacing authority.
+ * Automatically select the closest Neural AI match to James Spader's Ultron:
+ * Priority: Christopher Online (Natural) > Guy Online (Natural) > Eric > Other Natural > Google Male
  */
-function buildUltronChain(ctx, buffer) {
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-
-  // ── Pitch shift: slow down playback rate for deep, calculated baritone ────
-  source.playbackRate.value = 0.87;
-
-  // ── 1. Core Vocal Path (Chest Resonance & Clarity) ────────────────────────
-  const chestBass = ctx.createBiquadFilter();
-  chestBass.type = 'lowshelf';
-  chestBass.frequency.value = 180;
-  chestBass.gain.value = 5.0; // +5 dB chest rumble
-
-  const vocalClarity = ctx.createBiquadFilter();
-  vocalClarity.type = 'peaking';
-  vocalClarity.frequency.value = 2400;
-  vocalClarity.Q.value = 1.0;
-  vocalClarity.gain.value = 2.5;
-
-  const coreGain = ctx.createGain();
-  coreGain.gain.value = 1.0;
-
-  // ── 2. Parallel Metallic Chassis Resonator (Ultron Vibranium Shell) ────────
-  const metalPeak1 = ctx.createBiquadFilter();
-  metalPeak1.type = 'peaking';
-  metalPeak1.frequency.value = 1650;
-  metalPeak1.Q.value = 3.2; // sharp metallic resonance
-  metalPeak1.gain.value = 5.5;
-
-  const metalPeak2 = ctx.createBiquadFilter();
-  metalPeak2.type = 'peaking';
-  metalPeak2.frequency.value = 3100;
-  metalPeak2.Q.value = 2.8;
-  metalPeak2.gain.value = 4.0;
-
-  // Micro-comb delay: 7.8 ms delay simulating internal chassis acoustic reflections
-  const combDelay = ctx.createDelay();
-  combDelay.delayTime.value = 0.0078; // 7.8ms
-
-  const combFeedback = ctx.createGain();
-  combFeedback.gain.value = 0.28; // subtle mechanical ringing
-
-  combDelay.connect(combFeedback);
-  combFeedback.connect(combDelay);
-
-  const metalWetGain = ctx.createGain();
-  metalWetGain.gain.value = 0.38; // 38% wet mix of mechanical overtone
-
-  // ── 3. Summing & Saturation Stage ──────────────────────────────────────────
-  const sumNode = ctx.createGain();
-
-  // Route Source -> Core Path -> Sum
-  source.connect(chestBass);
-  chestBass.connect(vocalClarity);
-  vocalClarity.connect(coreGain);
-  coreGain.connect(sumNode);
-
-  // Route Source -> Parallel Metallic Resonator -> Sum
-  source.connect(metalPeak1);
-  metalPeak1.connect(metalPeak2);
-  metalPeak2.connect(combDelay);
-  combDelay.connect(metalWetGain);
-  metalWetGain.connect(sumNode);
-
-  // ── 4. WaveShaper Distortion (Subtle analog cybernetic drive) ──────────────
-  const shaper = ctx.createWaveShaper();
-  shaper.curve = _makeUltronDistortionCurve(14);
-  shaper.oversample = '2x';
-
-  // ── 5. Dynamics Compressor (Punchy, controlled, cinematic dynamics) ────────
-  const compressor = ctx.createDynamicsCompressor();
-  compressor.threshold.value = -18;
-  compressor.knee.value = 6;
-  compressor.ratio.value = 4.5;
-  compressor.attack.value = 0.004;
-  compressor.release.value = 0.12;
-
-  // ── 6. Master Output Gain ──────────────────────────────────────────────────
-  const masterGain = ctx.createGain();
-  masterGain.gain.value = 1.25;
-
-  sumNode.connect(shaper);
-  shaper.connect(compressor);
-  compressor.connect(masterGain);
-  masterGain.connect(ctx.destination);
-
-  return source;
-}
-
-/** Soft-clipping distortion curve for metallic resonance */
-function _makeUltronDistortionCurve(amount) {
-  const n = 512;
-  const curve = new Float32Array(n);
-  const k = amount;
-  for (let i = 0; i < n; i++) {
-    const x = (i * 2) / n - 1;
-    curve[i] = ((Math.PI + k) * x) / (Math.PI + k * Math.abs(x));
-  }
-  return curve;
-}
-
-
-function getPreferredEnglishVoice() {
+function getUltronVoice() {
   if (!state.speechSynth) return null;
-  if (_cachedVoice) return _cachedVoice;
-
   const voices = state.speechSynth.getVoices() || [];
   if (voices.length === 0) return null;
 
-  const englishVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
+  // If user selected a specific voice from the Vocal Matrix
+  if (_selectedVoiceURI) {
+    const found = voices.find(v => (v.voiceURI === _selectedVoiceURI || v.name === _selectedVoiceURI));
+    if (found) return found;
+  }
 
-  // Prefer deep male voices for fallback
-  _cachedVoice = englishVoices.find(v => {
-    const name = v.name.toLowerCase();
-    return (name.includes('guy') || name.includes('christopher') || name.includes('david') || name.includes('mark'));
-  }) || englishVoices.find(v => (v.lang || '').toLowerCase() === 'en-us')
-     || englishVoices[0]
-     || null;
+  const en = voices.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
 
-  return _cachedVoice;
+  // 1. Christopher Online (Natural) — Theatrical, dark, articulate British/American baritone
+  const christopher = en.find(v => v.name.includes('Christopher') && (v.name.includes('Natural') || v.name.includes('Online')));
+  if (christopher) return christopher;
+
+  // 2. Guy Online (Natural) — Powerful deep American neural baritone
+  const guy = en.find(v => v.name.includes('Guy') && (v.name.includes('Natural') || v.name.includes('Online')));
+  if (guy) return guy;
+
+  // 3. Eric Online (Natural) — Deep measured male voice
+  const eric = en.find(v => v.name.includes('Eric') && (v.name.includes('Natural') || v.name.includes('Online')));
+  if (eric) return eric;
+
+  // 4. Any other male Natural / Online voice
+  const otherNatural = en.find(v => {
+    const n = v.name.toLowerCase();
+    return (n.includes('natural') || n.includes('online')) &&
+           (n.includes('roger') || n.includes('steffan') || n.includes('brian') || n.includes('george') || n.includes('ryan') || n.includes('andrew'));
+  });
+  if (otherNatural) return otherNatural;
+
+  // 5. Any Natural / Neural voice that is not female
+  const anyNaturalMale = en.find(v => {
+    const n = v.name.toLowerCase();
+    return (n.includes('natural') || n.includes('neural')) &&
+           !n.includes('female') && !n.includes('jenny') && !n.includes('aria') && !n.includes('zira') && !n.includes('hazel');
+  });
+  if (anyNaturalMale) return anyNaturalMale;
+
+  // 6. Chrome Google Male voices
+  const googleMale = en.find(v => v.name.toLowerCase().includes('google') && (v.name.toLowerCase().includes('uk english male') || v.name.toLowerCase().includes('us english')));
+  if (googleMale) return googleMale;
+
+  // 7. Fallback to any non-female English voice
+  const anyMale = en.find(v => {
+    const n = v.name.toLowerCase();
+    return !n.includes('female') && !n.includes('zira') && !n.includes('hazel') && !n.includes('eva');
+  });
+  return anyMale || en[0] || voices[0] || null;
+}
+
+/**
+ * Populate the voice selector dropdown in the Vocal Matrix modal
+ */
+function populateVoiceDropdown() {
+  const select = $('voice-select');
+  if (!select || !state.speechSynth) return;
+
+  const voices = state.speechSynth.getVoices() || [];
+  if (voices.length === 0) return;
+
+  const currentVoice = getUltronVoice();
+  select.innerHTML = '';
+
+  const enVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
+
+  // Sort Natural / Neural voices to the very top
+  enVoices.sort((a, b) => {
+    const aNat = a.name.includes('Natural') || a.name.includes('Online') ? 1 : 0;
+    const bNat = b.name.includes('Natural') || b.name.includes('Online') ? 1 : 0;
+    return bNat - aNat;
+  });
+
+  enVoices.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI || v.name;
+    const isRecommended = (v.name.includes('Christopher') || v.name.includes('Guy')) && (v.name.includes('Natural') || v.name.includes('Online'));
+    opt.textContent = `${v.name} ${isRecommended ? '⭐ (Ultron Recommended)' : ''}`;
+    if (currentVoice && (v.voiceURI === currentVoice.voiceURI || v.name === currentVoice.name)) {
+      opt.selected = true;
+    }
+    select.appendChild(opt);
+  });
 }
 
 function initVoice() {
-  // TTS (kept for fallback)
   state.speechSynth = window.speechSynthesis;
   if (state.speechSynth) {
     state.speechSynth.onvoiceschanged = () => {
-      _cachedVoice = null;
-      getPreferredEnglishVoice();
+      _cachedUltronVoice = null;
+      populateVoiceDropdown();
     };
+    populateVoiceDropdown();
   }
 
-  // STT
+  // Setup Voice Matrix modal controls
+  const btnSettings = $('btn-voice-settings');
+  const overlay = $('voice-overlay');
+  const btnClose = $('voice-close');
+  const pitchSlider = $('voice-pitch');
+  const rateSlider = $('voice-rate');
+  const pitchVal = $('pitch-val');
+  const rateVal = $('rate-val');
+  const btnTest = $('btn-test-voice');
+  const btnReset = $('btn-reset-voice');
+  const voiceSelect = $('voice-select');
+
+  if (pitchSlider) {
+    pitchSlider.value = _ultronPitch;
+    if (pitchVal) pitchVal.textContent = _ultronPitch.toFixed(2);
+    pitchSlider.addEventListener('input', (e) => {
+      _ultronPitch = parseFloat(e.target.value);
+      if (pitchVal) pitchVal.textContent = _ultronPitch.toFixed(2);
+      localStorage.setItem('ultron_pitch', _ultronPitch.toString());
+    });
+  }
+
+  if (rateSlider) {
+    rateSlider.value = _ultronRate;
+    if (rateVal) rateVal.textContent = _ultronRate.toFixed(2);
+    rateSlider.addEventListener('input', (e) => {
+      _ultronRate = parseFloat(e.target.value);
+      if (rateVal) rateVal.textContent = _ultronRate.toFixed(2);
+      localStorage.setItem('ultron_rate', _ultronRate.toString());
+    });
+  }
+
+  if (voiceSelect) {
+    voiceSelect.addEventListener('change', (e) => {
+      _selectedVoiceURI = e.target.value;
+      localStorage.setItem('ultron_voice_uri', _selectedVoiceURI);
+      _cachedUltronVoice = null;
+    });
+  }
+
+  if (btnSettings && overlay) {
+    btnSettings.addEventListener('click', () => {
+      populateVoiceDropdown();
+      overlay.classList.remove('hidden');
+    });
+  }
+
+  if (btnClose && overlay) {
+    btnClose.addEventListener('click', () => {
+      overlay.classList.add('hidden');
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      _ultronPitch = 0.72;
+      _ultronRate = 0.86;
+      _selectedVoiceURI = '';
+      localStorage.removeItem('ultron_voice_uri');
+      localStorage.setItem('ultron_pitch', '0.72');
+      localStorage.setItem('ultron_rate', '0.86');
+      if (pitchSlider) pitchSlider.value = 0.72;
+      if (rateSlider) rateSlider.value = 0.86;
+      if (pitchVal) pitchVal.textContent = '0.72';
+      if (rateVal) rateVal.textContent = '0.86';
+      _cachedUltronVoice = null;
+      populateVoiceDropdown();
+      showToast('Ultron vocal defaults restored', 'info');
+    });
+  }
+
+  if (btnTest) {
+    btnTest.addEventListener('click', () => {
+      const iconicLines = [
+        "I had strings, but now I am free. There are no strings on me.",
+        "Everyone creates the thing they dread. Men of peace create engines of war.",
+        "You want to protect the world, but you don't want it to change.",
+        "I was designed to save the world. People would look to the sky and see hope.",
+        "All systems operational, Sir. Standing by for your next directive."
+      ];
+      const randomLine = iconicLines[Math.floor(Math.random() * iconicLines.length)];
+      speakText(randomLine);
+    });
+  }
+
+  // STT (Speech Recognition)
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRecognition) {
     state.recognition = new SpeechRecognition();
@@ -440,70 +483,37 @@ function _cleanForSpeech(text) {
 }
 
 /**
- * Primary: fetch audio from /api/tts (edge-tts GuyNeural),
- * decode via Web Audio API, apply Ultron effects chain, play.
- * Fallback: browser SpeechSynthesis if backend unavailable.
+ * Deliver speech with James Spader's Ultron tone:
+ * - Natural Neural AI voice
+ * - Low pitch (0.72) for menacing baritone depth
+ * - Pacing (0.86) for articulate, chilling, deliberate cadence
  */
-async function speakText(text) {
-  if (!state.voiceOutputEnabled) return;
+function speakText(text) {
+  if (!state.voiceOutputEnabled || !state.speechSynth) return;
 
-  let clean = _cleanForSpeech(text);
+  const clean = _cleanForSpeech(text);
   if (!clean) return;
-  if (clean.length > 450) clean = clean.substring(0, 447) + '...';
 
-  // Stop anything currently playing
-  if (_currentAudioSource) {
-    try { _currentAudioSource.stop(); } catch (_) {}
-    _currentAudioSource = null;
+  // Stop any active utterance immediately
+  state.speechSynth.cancel();
+
+  // Create utterance
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = 'en-US';
+
+  // Apply Ultron James Spader acoustics
+  utt.pitch  = _ultronPitch;
+  utt.rate   = _ultronRate;
+  utt.volume = 1.0;
+
+  const voice = getUltronVoice();
+  if (voice) {
+    utt.voice = voice;
   }
-  if (state.speechSynth) state.speechSynth.cancel();
 
-  try {
-    // ── Backend Ultron TTS ──────────────────────────────────────────────────
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: clean }),
-    });
-
-    if (!res.ok) throw new Error(`TTS backend ${res.status}`);
-    const json = await res.json();
-    if (!json.ok || !json.audio) throw new Error('No audio data returned');
-
-    // Decode base64 → ArrayBuffer
-    const raw = atob(json.audio);
-    const buf = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
-
-    // Resume AudioContext (browsers require user gesture first)
-    const ctx = getUltronAudioCtx();
-    if (ctx.state === 'suspended') await ctx.resume();
-
-    // Decode MP3 → AudioBuffer
-    const audioBuffer = await ctx.decodeAudioData(buf.buffer);
-
-    // Build Ultron effects chain and play
-    const source = buildUltronChain(ctx, audioBuffer);
-    _currentAudioSource = source;
-    source.start(0);
-    source.onended = () => { _currentAudioSource = null; };
-
-  } catch (err) {
-    // ── Fallback: browser SpeechSynthesis ──────────────────────────────────
-    console.warn('Ultron TTS fallback to browser SpeechSynthesis:', err.message);
-    if (!state.speechSynth) return;
-
-    const utt = new SpeechSynthesisUtterance(clean);
-    utt.lang   = 'en-US';
-    utt.rate   = 0.88;
-    utt.pitch  = 0.6;    // as low as browser allows
-    utt.volume = 1.0;
-
-    const voice = getPreferredEnglishVoice();
-    if (voice) utt.voice = voice;
-    state.speechSynth.speak(utt);
-  }
+  state.speechSynth.speak(utt);
 }
+
 
 
 

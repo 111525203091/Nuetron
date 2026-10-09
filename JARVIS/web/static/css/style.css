@@ -761,3 +761,135 @@ html, body {
   line-height: 1;
 }
 .location-close:hover { color: #ff1744; }
+
+/* ─── Ultron Vocal Matrix Modal ─────────────────────────────────────── */
+.voice-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.voice-overlay.hidden { display: none; }
+.voice-panel {
+  background: #0d0408;
+  border: 1px solid rgba(255, 23, 68, 0.5);
+  box-shadow: 0 0 35px rgba(255, 23, 68, 0.25);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+}
+.voice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: rgba(255, 23, 68, 0.1);
+  border-bottom: 1px solid rgba(255, 23, 68, 0.25);
+}
+.voice-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ff1744;
+  letter-spacing: 2px;
+}
+.voice-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.voice-close:hover { color: #ff1744; }
+.voice-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.voice-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.voice-field label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 1px;
+}
+.voice-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.voice-field-header span {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  color: #ff1744;
+}
+.voice-dropdown {
+  background: rgba(255, 23, 68, 0.06);
+  border: 1px solid rgba(255, 23, 68, 0.35);
+  color: #fff;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+}
+.voice-dropdown option {
+  background: #0d0408;
+  color: #fff;
+}
+.voice-slider {
+  accent-color: #ff1744;
+  cursor: pointer;
+}
+.voice-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+.voice-test-btn {
+  flex: 2;
+  background: #ff1744;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.voice-test-btn:hover {
+  box-shadow: 0 0 15px #ff1744;
+  transform: translateY(-1px);
+}
+.voice-reset-btn {
+  flex: 1;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.voice-reset-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+

@@ -47,6 +47,7 @@
           <button class="ctrl-btn" id="btn-install" title="Install ULTRON Desktop App" style="display:none">📥</button>
           <button class="ctrl-btn" id="btn-voice" title="Toggle Voice Input">🎤</button>
           <button class="ctrl-btn" id="btn-speak" title="Toggle Voice Output">🔊</button>
+          <button class="ctrl-btn" id="btn-voice-settings" title="Ultron Voice Matrix">🎙</button>
           <button class="ctrl-btn" id="btn-theme" title="Toggle Theme">🌙</button>
           <button class="ctrl-btn" id="btn-fullscreen" title="Fullscreen">⛶</button>
         </div>
@@ -169,6 +170,41 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Ultron Voice Matrix Modal ────────────────────────────── -->
+  <div id="voice-overlay" class="voice-overlay hidden">
+    <div class="voice-panel">
+      <div class="voice-header">
+        <span class="voice-title">🎙 ULTRON VOCAL MATRIX</span>
+        <button class="voice-close" id="voice-close">✕</button>
+      </div>
+      <div class="voice-body">
+        <div class="voice-field">
+          <label for="voice-select">Neural Voice Model:</label>
+          <select id="voice-select" class="voice-dropdown"></select>
+        </div>
+        <div class="voice-field">
+          <div class="voice-field-header">
+            <label for="voice-pitch">Baritone Depth (Pitch):</label>
+            <span id="pitch-val">0.72</span>
+          </div>
+          <input type="range" id="voice-pitch" min="0.5" max="1.0" step="0.02" value="0.72" class="voice-slider" />
+        </div>
+        <div class="voice-field">
+          <div class="voice-field-header">
+            <label for="voice-rate">Theatrical Cadence (Speed):</label>
+            <span id="rate-val">0.86</span>
+          </div>
+          <input type="range" id="voice-rate" min="0.6" max="1.2" step="0.02" value="0.86" class="voice-slider" />
+        </div>
+        <div class="voice-actions">
+          <button id="btn-test-voice" class="voice-test-btn">▶ Test Ultron Voice</button>
+          <button id="btn-reset-voice" class="voice-reset-btn">Reset Defaults</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- ── Location Widget ────────────────────────────────────── -->
   <div id="location-widget" class="location-widget hidden">

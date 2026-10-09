@@ -171,62 +171,7 @@ def refresh_apps():
     return jsonify({"ok": True, "apps": catalog, "count": len(catalog)})
 
 
-@app.route("/api/tts", methods=["POST"])
-def tts_endpoint():
-    """
-    Generate Ultron voice base audio via pyttsx3 (SAPI5 / Desktop TTS).
-    Returns base64-encoded WAV audio for real-time DSP processing in browser.
-    """
-    import base64
-    import tempfile
-    import os as _os
-    import pyttsx3
 
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
-    if not text:
-        return jsonify({"error": "No text provided"}), 400
-
-    if len(text) > 600:
-        text = text[:597] + "..."
-
-    tmp_path = None
-    try:
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        tmp_path = tmp.name
-        tmp.close()
-
-        engine = pyttsx3.init()
-        # Ultron's pacing: deliberate, calm, menacingly steady
-        engine.setProperty("rate", 148)
-        engine.setProperty("volume", 1.0)
-
-        # Select deepest male voice available (e.g. David, George, or default male)
-        voices = engine.getProperty("voices")
-        for v in voices:
-            name_lower = v.name.lower()
-            if "david" in name_lower or "male" in name_lower or "george" in name_lower:
-                engine.setProperty("voice", v.id)
-                break
-
-        engine.save_to_file(text, tmp_path)
-        engine.runAndWait()
-
-        with open(tmp_path, "rb") as f:
-            audio_bytes = f.read()
-
-        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
-        return jsonify({"ok": True, "audio": audio_b64, "mime": "audio/wav"})
-
-    except Exception as e:
-        log.error("TTS endpoint error: %s", str(e))
-        return jsonify({"ok": False, "error": str(e)}), 500
-    finally:
-        if tmp_path and _os.path.exists(tmp_path):
-            try:
-                _os.unlink(tmp_path)
-            except Exception:
-                pass
 
 
 
