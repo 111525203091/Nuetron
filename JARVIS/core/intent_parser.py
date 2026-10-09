@@ -47,9 +47,10 @@ class IntentParser:
         # Direct CLI commands
         (r"^(?:ipconfig|ifconfig|dir|ls|ping\b|whoami|git\b|pip\b|npm\b|npx\b|node\b|python\b|curl\b|systeminfo|tasklist|netstat|tree\b|echo\b|cat\b|type\b|mkdir\b|rmdir\b)(?:[\s].*)?$", "run_terminal", {"raw_target": True}),
 
-        # App control (GUI apps only: open, launch, start)
-        (r"^(?:open|launch|start)\s+(?:app|application)?\s*(.+)", "open_app", {"group": 1}),
-        (r"^(?:close|kill|quit)\s+(?:app|application)?\s*(.+)", "close_app", {"group": 1}),
+        # App control (GUI apps, websites, tools)
+        (r"(?:^|\b)(?:can you\s+|could you\s+|please\s+|ultron\s+|jarvis\s+)?(?:open|launch|start)\s+(?:up\s+|the\s+|app\s+|application\s+)?([a-zA-Z0-9\s._\-+]+?)(?:\s+(?:app|application|browser|for me|please))?$", "open_app", {"group": 1}),
+        (r"(?:^|\b)(?:can you\s+|could you\s+|please\s+|ultron\s+|jarvis\s+)?(?:close|kill|quit|exit|terminate)\s+(?:the\s+|app\s+|application\s+)?([a-zA-Z0-9\s._\-+]+?)(?:\s+(?:app|application|for me|please))?$", "close_app", {"group": 1}),
+
 
         # Search
         (r"\b(search|google|look up|find|search for) (.+)", "search_web", {"group": 2}),
