@@ -13,6 +13,7 @@ load_dotenv(BASE_DIR / ".env")
 
 # ─── API Keys ───────────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+XAI_API_KEY    = os.getenv("XAI_API_KEY", "")
 WOLFRAM_APP_ID = os.getenv("WOLFRAM_APP_ID", "")
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY", "")
 
@@ -46,6 +47,12 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 GEMINI_FALLBACK_MODEL = "gemini-3.1-flash-lite"
 GEMINI_MAX_TOKENS = 1024
 GEMINI_TEMPERATURE = 0.7
+
+# ─── xAI Grok Model ───────────────────────────────────────────────────────────
+XAI_MODEL = "grok-3-mini"          # fast, low latency
+XAI_FALLBACK_MODEL = "grok-3"      # full power fallback
+XAI_MAX_TOKENS = 1024
+XAI_BASE_URL = "https://api.x.ai/v1"
 
 # ─── System Prompt ────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = f"""You are {JARVIS_NAME}, an extraordinarily intelligent, conversational, and charismatic AI partner created for {OWNER_NAME}.
