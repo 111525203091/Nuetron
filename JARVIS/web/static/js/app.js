@@ -73,7 +73,9 @@ function initSocket() {
     setThinking(false);
     appendMessage('jarvis', data.message);
     if (state.voiceOutputEnabled) {
-      speakText(data.message);
+      // Speak the clean natural-language version, not the formatted display text
+      const textToSpeak = data.spoken || data.message;
+      speakText(textToSpeak);
     }
     addHistory(data.message.substring(0, 60) + '...');
 

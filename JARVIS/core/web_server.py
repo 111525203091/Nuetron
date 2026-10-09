@@ -2,6 +2,7 @@
 JARVIS Web Server — Flask + SocketIO web interface backend
 """
 
+import re
 import threading
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
@@ -12,6 +13,99 @@ from core.brain import JarvisBrain
 from core.intent_parser import IntentParser
 from core.dispatcher import Dispatcher
 from core.logger import log
+
+
+def to_speech(text: str) -> str:
+    """
+    Convert a formatted display response into a clean, natural spoken sentence.
+    Strips markdown, emoji, tables, code blocks, bullet lists, and technical noise.
+    Returns only the first meaningful spoken portion (max ~2 sentences) so Ultron
+    sounds like he's *talking*, not reading a report.
+    """
+    if not text:
+        return ""
+
+    # 1. Remove fenced code blocks entirely
+    text = re.sub(r'```[\s\S]*?```', '', text)
+
+    # 2. Remove inline code
+    text = re.sub(r'`[^`]+`', '', text)
+
+    # 3. Strip markdown links — keep label only
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+
+    # 4. Strip bold / italic markers
+    text = re.sub(r'\*{1,3}([^*]+)\*{1,3}', r'\1', text)
+
+    # 5. Strip markdown headings (#, ##, ###)
+    text = re.sub(r'#{1,6}\s+', '', text)
+
+    # 6. Strip all emoji (Unicode ranges)
+    text = re.sub(
+        r'[\U00002600-\U000027BF]|[\U0001F300-\U0001FAFF]|'
+        r'[\U00002702-\U000027B0]|[\U0000FE00-\U0000FE0F]|'
+        r'[\U0001F1E0-\U0001F1FF]|[\u2600-\u26FF]|[\u2700-\u27BF]|'
+        r'[\u23E9-\u23F3]|[\u23F8-\u23FA]|[\u25AA-\u25AB]|'
+        r'[\u25B6]|[\u25C0]|[\u25FB-\u25FE]|[\u2614-\u2615]|'
+        r'[\u2648-\u2653]|[\u267F]|[\u2693]|[\u26A1]|[\u26AA-\u26AB]|'
+        r'[\u26BD-\u26BE]|[\u26C4-\u26C5]|[\u26CE]|[\u26D4]|'
+        r'[\u26EA]|[\u26F2-\u26F3]|[\u26F5]|[\u26FA]|[\u26FD]|'
+        r'[\u2702]|[\u2705]|[\u2708-\u270D]|[\u270F]|[\u2712]|'
+        r'[\u2714]|[\u2716]|[\u271D]|[\u2721]|[\u2728]|[\u2733-\u2734]|'
+        r'[\u2744]|[\u2747]|[\u274C]|[\u274E]|[\u2753-\u2755]|'
+        r'[\u2757]|[\u2763-\u2764]|[\u2795-\u2797]|[\u27A1]|[\u27B0]|'
+        r'[\u27BF]|[\u2934-\u2935]|[\u2B05-\u2B07]|[\u2B1B-\u2B1C]|'
+        r'[\u2B50]|[\u2B55]|[\u3030]|[\u303D]|[\u3297]|[\u3299]|'
+        r'[\U0001F004]|[\U0001F0CF]|[\U0001F170-\U0001F171]|'
+        r'[\U0001F17E-\U0001F17F]|[\U0001F18E]|[\U0001F191-\U0001F19A]|'
+        r'[\U0001F1E0-\U0001F1FF]|✓|✅|⚠|⚡|🔴|🟢|🔵|🟡|•|·',
+        '', text
+    )
+
+    # 7. Strip lines that look like table rows, status lines, or raw data
+    lines = text.split('\n')
+    spoken_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        # Skip pure table rows (|...|...|)
+        if re.match(r'^\|.+\|', line):
+            continue
+        # Skip lines that are mostly dashes (table separators)
+        if re.match(r'^[-=|+\s]{3,}$', line):
+            continue
+        # Skip lines that look like "Key: value" system telemetry (short label: data)
+        if re.match(r'^[A-Za-z ]{2,25}:\s+[\d.]+', line) and len(line) < 60:
+            continue
+        # Skip bullet-list lines (-, *, •)
+        if re.match(r'^[-*•]\s+', line):
+            # Extract the content after the bullet
+            content = re.sub(r'^[-*•]\s+', '', line).strip()
+            if content:
+                spoken_lines.append(content)
+            continue
+        spoken_lines.append(line)
+
+    text = ' '.join(spoken_lines)
+
+    # 8. Collapse multiple spaces/newlines
+    text = re.sub(r'\s{2,}', ' ', text).strip()
+
+    # 9. Remove residual special chars (except common punctuation)
+    text = re.sub(r'[^\w\s.,!?;:\'"()\-]', '', text)
+
+    # 10. Trim to ~400 chars so TTS stays conversational, not a wall of text
+    if len(text) > 400:
+        # Cut at last sentence boundary before 400 chars
+        cut = text[:400]
+        last_period = max(cut.rfind('.'), cut.rfind('!'), cut.rfind('?'))
+        if last_period > 100:
+            text = cut[:last_period + 1]
+        else:
+            text = cut.rsplit(' ', 1)[0] + '.'
+
+    return text.strip()
 
 # Global references (set by main.py)
 _brain: JarvisBrain = None
@@ -219,12 +313,14 @@ def on_message(data):
         finally:
             if response is None:
                 response = f"My apologies, {OWNER_NAME}. That request didn't complete. Please try again."
+            # spoken = clean natural TTS version; message = full formatted display text
+            spoken = to_speech(response)
             target = _active_sid or sid
             if target:
-                socketio.emit("response", {"message": response, "intent": intent_action}, to=target)
+                socketio.emit("response", {"message": response, "spoken": spoken, "intent": intent_action}, to=target)
                 socketio.emit("thinking", {"status": False}, to=target)
             else:
-                socketio.emit("response", {"message": response, "intent": intent_action})
+                socketio.emit("response", {"message": response, "spoken": spoken, "intent": intent_action})
                 socketio.emit("thinking", {"status": False})
 
 
