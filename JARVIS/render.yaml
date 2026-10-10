@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ultron-ai
+    runtime: python
+    buildCommand: pip install -r requirements-cloud.txt
+    startCommand: python main.py --web
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: JARVIS_NAME
+        value: ULTRON
+      - key: OWNER_NAME
+        value: Sir
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false

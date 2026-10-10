@@ -329,11 +329,12 @@ def on_message(data):
 
 def run_web(debug: bool = False):
     """Start the Flask-SocketIO web server."""
-    log.info("Starting web server at http://%s:%d", WEB_HOST, WEB_PORT)
+    from core.config import WEB_HOST as current_host, WEB_PORT as current_port
+    log.info("Starting web server at http://%s:%d", current_host, current_port)
     socketio.run(
         app,
-        host=WEB_HOST,
-        port=WEB_PORT,
+        host=current_host,
+        port=current_port,
         debug=debug,
         use_reloader=False,
         log_output=False,

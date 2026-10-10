@@ -94,7 +94,14 @@ def main():
     if not check_env():
         sys.exit(1)
 
-    # Override port if specified
+    # Support Render.com / cloud PORT environment variable
+    cloud_port = os.environ.get("PORT")
+    if cloud_port:
+        import core.config as cfg
+        cfg.WEB_PORT = int(cloud_port)
+        cfg.WEB_HOST = "0.0.0.0"
+
+    # Override port if specified via CLI arg
     if args.port:
         import core.config as cfg
         cfg.WEB_PORT = args.port
@@ -103,7 +110,13 @@ def main():
     from core.brain import JarvisBrain
     from core.voice import VoiceEngine
     from core.dispatcher import Dispatcher
-    from core.cli import CLIInterface
+    # Cloud-safe imports (VoiceEngine/CLIInterface are Windows-only)
+    try:
+        from core.cli import CLIInterface
+        _has_cli = True
+    except Exception:
+        _has_cli = False
+
     from core.web_server import run_web, init_web
     from core.logger import log
 
@@ -115,7 +128,7 @@ def main():
     brain = JarvisBrain()
 
     voice = None
-    if not args.no_voice:
+    if not args.no_voice and _has_cli:
         try:
             voice = VoiceEngine()
         except Exception as e:
@@ -144,20 +157,22 @@ def main():
         log.info("Web interface: http://%s:%d", WEB_HOST, WEB_PORT)
 
         if not run_cli:
-            # Web-only mode — open browser and wait
-            time.sleep(1.5)
-            webbrowser.open(f"http://{WEB_HOST}:{WEB_PORT}")
-            print(f"\n  JARVIS Web Interface: http://{WEB_HOST}:{WEB_PORT}")
+            # Web-only mode — open browser (skip on cloud where no display is available)
+            is_cloud = bool(os.environ.get("PORT") or os.environ.get("RENDER"))
+            if not is_cloud:
+                time.sleep(1.5)
+                webbrowser.open(f"http://{WEB_HOST}:{WEB_PORT}")
+            print(f"\n  ULTRON Web Interface: http://{WEB_HOST}:{WEB_PORT}")
             print("  Press Ctrl+C to stop.\n")
             try:
                 while True:
                     time.sleep(1)
             except KeyboardInterrupt:
-                print("\n  JARVIS shutting down.")
+                print("\n  ULTRON shutting down.")
             return
 
     # ── Start CLI ───────────────────────────────────────────────
-    if run_cli:
+    if run_cli and _has_cli:
         # Open browser alongside CLI
         if run_web_server:
             time.sleep(1.0)  # Wait for web server to start
