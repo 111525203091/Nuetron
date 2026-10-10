@@ -56,10 +56,9 @@ class IntentParser:
         (r"\b(search|google|look up|find|search for) (.+)", "search_web", {"group": 2}),
         (r"\b(open (https?://\S+|www\.\S+))\b", "open_url", {"group": 2}),
 
-        # Wikipedia
+        # Wikipedia — only trigger on explicit keyword or named persons (not conversational "what is X")
         (r"\b(wikipedia|wiki) (.+)", "wikipedia", {"group": 2}),
-        (r"\bwho is (.+)", "wikipedia", {"group": 1}),
-        (r"\bwhat is (.+)", "wikipedia", {"group": 1}),
+        (r"\bwho is ([A-Z][a-zA-Z\s]+?)\??$", "wikipedia", {"group": 1}),
 
         # Weather
         (r"\b(?:weather|temperature|forecast)\b.*?\bin (.+)", "get_weather", {"group": 1}),
@@ -101,8 +100,9 @@ class IntentParser:
         (r"\bremember that (.+)", "remember", {"group": 1}),
         (r"\bwhat do you (know|remember) about me\b", "get_memory", {}),
 
-        # Conversation reset
-        (r"\b(reset|clear|start over|new conversation)\b", "reset_conversation", {}),
+        # Conversation reset — require explicit intent, not just "start over" mid-sentence
+        (r"^(?:reset|clear|wipe|erase)\s+(?:the\s+)?(?:conversation|chat|history|memory)$", "reset_conversation", {}),
+        (r"^(?:start|begin)\s+(?:a\s+)?(?:new|fresh)\s+(?:conversation|chat|session)$", "reset_conversation", {}),
 
         # Jokes / fun
         (r"\btell me a joke\b", "tell_joke", {}),

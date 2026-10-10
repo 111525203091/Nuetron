@@ -40,7 +40,61 @@ document.addEventListener('DOMContentLoaded', () => {
   initPWA();
   initTerminal();
   initLocation();
+  restoreChatHistory();
+
+  // Speak greeting after voices load (delay to ensure SpeechSynthesis is ready)
+  setTimeout(() => {
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const lines = [
+      `${greet}, Sir. All systems are online and standing by for your orders.`,
+      `${greet}, Sir. Neural intelligence fully operational. What do you require?`,
+      `${greet}, Sir. I have been waiting. Systems are primed and ready.`,
+    ];
+    speakText(lines[Math.floor(Math.random() * lines.length)]);
+  }, 1500);
 });
+
+// ─── Chat Persistence ─────────────────────────────────────────
+function saveChatHistory() {
+  try {
+    const messages = [];
+    chatMessages.querySelectorAll('.msg').forEach(el => {
+      const role = el.classList.contains('jarvis') ? 'jarvis' : 'user';
+      const bubble = el.querySelector('.msg-bubble');
+      if (bubble) messages.push({ role, html: bubble.innerHTML });
+    });
+    // Keep last 30 messages only
+    const trimmed = messages.slice(-30);
+    localStorage.setItem('ultron_chat_history', JSON.stringify(trimmed));
+  } catch(e) {}
+}
+
+function restoreChatHistory() {
+  try {
+    const saved = localStorage.getItem('ultron_chat_history');
+    if (!saved) return;
+    const messages = JSON.parse(saved);
+    if (!messages || !messages.length) return;
+    const welcome = chatMessages.querySelector('.welcome-msg');
+    if (welcome) welcome.style.display = 'none';
+    messages.forEach(({ role, html }) => {
+      const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const isJarvis = role === 'jarvis';
+      const msgEl = document.createElement('div');
+      msgEl.className = `msg ${role}`;
+      msgEl.innerHTML = `
+        <div class="msg-avatar">${isJarvis ? 'U' : '⬡'}</div>
+        <div class="msg-content">
+          <div class="msg-meta">${isJarvis ? 'ULTRON' : 'YOU'} · ${now}</div>
+          <div class="msg-bubble">${html}</div>
+        </div>
+      `;
+      chatMessages.appendChild(msgEl);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  } catch(e) {}
+}
 
 // ─── Socket.IO ────────────────────────────────────────────────
 function initSocket() {
@@ -97,9 +151,24 @@ function initSocket() {
 let _thinkingTimer = null;
 
 // ─── Thinking Indicator ───────────────────────────────────────
+const _thinkingPhrases = [
+  'Processing directive...',
+  'Analyzing...',
+  'Accessing neural matrix...',
+  'Computing response...',
+  'Scanning databases...',
+  'Running calculations...',
+  'Formulating reply...',
+  'Interfacing with cortex...',
+];
+
 function setThinking(active) {
   state.isThinking = active;
   thinkingEl.style.display = active ? 'flex' : 'none';
+  if (active) {
+    const txt = thinkingEl.querySelector('.thinking-text');
+    if (txt) txt.textContent = _thinkingPhrases[Math.floor(Math.random() * _thinkingPhrases.length)];
+  }
   sendBtn.disabled = active;
   if (active) chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -194,6 +263,7 @@ function appendMessage(role, text, isError = false) {
 
   chatMessages.appendChild(msgEl);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  saveChatHistory();
 }
 
 function escapeHtml(text) {
@@ -574,7 +644,9 @@ function initControls() {
 
   $('btn-speak').addEventListener('click', () => {
     state.voiceOutputEnabled = !state.voiceOutputEnabled;
-    $('btn-speak').classList.toggle('active', !state.voiceOutputEnabled);
+    // active class = voice ON (glowing); muted emoji when OFF
+    $('btn-speak').classList.toggle('active', state.voiceOutputEnabled);
+    $('btn-speak').textContent = state.voiceOutputEnabled ? '🔊' : '🔇';
     showToast(state.voiceOutputEnabled ? '🔊 Voice output: ON' : '🔇 Voice output: OFF');
     if (!state.voiceOutputEnabled && state.speechSynth) {
       state.speechSynth.cancel();
