@@ -138,6 +138,12 @@ def index():
     return render_template("index.html", jarvis_name=JARVIS_NAME, owner_name=OWNER_NAME)
 
 
+@app.route("/signalhouse")
+def signalhouse():
+    """Serve the SIGNALHOUSE single-screen hero prototype."""
+    return render_template("signalhouse.html")
+
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     """HTTP endpoint for chat (non-WebSocket)."""

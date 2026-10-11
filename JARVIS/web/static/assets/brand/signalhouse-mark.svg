@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 17" width="23" height="17" fill="none" aria-hidden="true">
+  <!-- Four slim offset signal bars / diagonal shards, monochrome white -->
+  <path d="M1.5 15.5L6.5 1.5H8.2L3.2 15.5H1.5Z" fill="#ffffff" />
+  <path d="M6.0 15.5L11.0 1.5H12.7L7.7 15.5H6.0Z" fill="#ffffff" fill-opacity="0.9" />
+  <path d="M10.8 15.5L15.8 1.5H17.5L12.5 15.5H10.8Z" fill="#ffffff" fill-opacity="0.75" />
+  <path d="M15.5 15.5L20.5 1.5H22.2L17.2 15.5H15.5Z" fill="#ffffff" fill-opacity="0.55" />
+  <circle cx="21.5" cy="2.5" r="1.0" fill="#ffffff" />
+</svg>
