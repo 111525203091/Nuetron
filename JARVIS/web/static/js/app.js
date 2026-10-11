@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPWA();
   initTerminal();
   initLocation();
+  initPlasmaRingOrb();
   restoreChatHistory();
 
   // Speak greeting after voices load (delay to ensure SpeechSynthesis is ready)
@@ -54,6 +55,26 @@ document.addEventListener('DOMContentLoaded', () => {
     speakText(lines[Math.floor(Math.random() * lines.length)]);
   }, 1500);
 });
+
+// ─── Plasma Ring Voice Orb ────────────────────────────────────
+let plasmaOrb = null;
+function initPlasmaRingOrb() {
+  if (typeof PlasmaRingController !== 'function') return;
+  const container = $('plasma-orb-main');
+  if (!container) return;
+
+  plasmaOrb = new PlasmaRingController('plasma-orb-main', {
+    colors: ['#FF1744', '#0055FF', '#FF0055', '#7928CA', '#00E5FF'],
+    density: 110,
+    speed: 75,
+    waveHeight: 18,
+    centerOpacity: 85,
+    scale: 36,
+    dragSensitivity: 100,
+    tilt: 20,
+    radius: 260
+  });
+}
 
 // ─── Chat Persistence ─────────────────────────────────────────
 function saveChatHistory() {
@@ -583,12 +604,23 @@ function speakText(text) {
     utt.voice = voice;
   }
 
+  // Animate Plasma Ring on speech
+  const orbContainer = $('plasma-orb-main');
+  utt.onstart = () => {
+    if (plasmaOrb) plasmaOrb.setVoiceActivity(true, 1.25);
+    if (orbContainer) orbContainer.classList.add('speaking');
+  };
+  utt.onend = () => {
+    if (plasmaOrb) plasmaOrb.setVoiceActivity(false);
+    if (orbContainer) orbContainer.classList.remove('speaking');
+  };
+  utt.onerror = () => {
+    if (plasmaOrb) plasmaOrb.setVoiceActivity(false);
+    if (orbContainer) orbContainer.classList.remove('speaking');
+  };
+
   state.speechSynth.speak(utt);
 }
-
-
-
-
 
 function startVoiceInput() {
   if (!state.recognition) {
@@ -597,12 +629,14 @@ function startVoiceInput() {
   }
   state.voiceInputActive = true;
   micBtn.classList.add('recording');
+  if (plasmaOrb) plasmaOrb.setVoiceActivity(true, 0.85);
   state.recognition.start();
 }
 
 function stopVoiceInput() {
   state.voiceInputActive = false;
   micBtn.classList.remove('recording');
+  if (plasmaOrb) plasmaOrb.setVoiceActivity(false);
   try { state.recognition.stop(); } catch(e) {}
 }
 

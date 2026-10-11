@@ -105,11 +105,9 @@
       <main class="chat-area">
         <div class="chat-messages" id="chat-messages">
           <div class="welcome-msg">
-            <div class="arc-reactor-lg">
-              <div class="arc-ring arc-ring-1"></div>
-              <div class="arc-ring arc-ring-2"></div>
-              <div class="arc-ring arc-ring-3"></div>
-              <div class="arc-core"></div>
+            <div class="plasma-orb-wrapper">
+              <div id="plasma-orb-main" class="plasma-orb-container" title="Drag to orbit, speak to activate"></div>
+              <div class="plasma-orb-ring"></div>
             </div>
             <h2>SYSTEMS ONLINE</h2>
             <p>Good day, <strong>{{ owner_name }}</strong>. How may I assist you?</p>
@@ -218,6 +216,7 @@
   <!-- ── Scripts ─────────────────────────────────────────────── -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/static/js/plasma_ring.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -334,7 +334,43 @@ html, body {
   letter-spacing: 1px;
 }
 
-/* Arc Reactor Large */
+/* Plasma Orb — Neural Voice Reactive WebGL Matrix */
+.plasma-orb-wrapper {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plasma-orb-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: visible;
+  filter: drop-shadow(0 0 35px rgba(255, 23, 68, 0.45));
+  transition: filter 0.3s ease;
+}
+
+.plasma-orb-container.speaking {
+  filter: drop-shadow(0 0 55px rgba(255, 23, 68, 0.85)) drop-shadow(0 0 80px rgba(0, 180, 255, 0.6));
+}
+
+.plasma-orb-ring {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 23, 68, 0.35);
+  box-shadow: inset 0 0 25px rgba(255, 23, 68, 0.15), 0 0 25px rgba(0, 180, 255, 0.15);
+  pointer-events: none;
+  animation: spin 16s linear infinite;
+}
+
+/* Arc Reactor Large (fallback) */
 .arc-reactor-lg {
   width: 100px; height: 100px;
   position: relative;
