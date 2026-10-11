@@ -84,7 +84,35 @@ html, body {
 
 .header-left { display: flex; align-items: center; gap: 16px; }
 
-/* Arc Reactor */
+/* Plasma Header Orb */
+.plasma-header-orb-wrap {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.plasma-header-orb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 15px rgba(255, 23, 68, 0.6));
+}
+
+.plasma-header-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 23, 68, 0.45);
+  box-shadow: 0 0 12px rgba(255, 23, 68, 0.3);
+  animation: spin 10s linear infinite;
+  pointer-events: none;
+}
+
+/* Arc Reactor (legacy fallback) */
 .arc-reactor {
   width: 48px; height: 48px;
   position: relative;

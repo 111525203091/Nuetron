@@ -58,22 +58,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── Plasma Ring Voice Orb ────────────────────────────────────
 let plasmaOrb = null;
+let plasmaHeaderOrb = null;
+
 function initPlasmaRingOrb() {
   if (typeof PlasmaRingController !== 'function') return;
-  const container = $('plasma-orb-main');
-  if (!container) return;
 
-  plasmaOrb = new PlasmaRingController('plasma-orb-main', {
-    colors: ['#FF1744', '#0055FF', '#FF0055', '#7928CA', '#00E5FF'],
-    density: 110,
-    speed: 75,
-    waveHeight: 18,
-    centerOpacity: 85,
-    scale: 36,
-    dragSensitivity: 100,
-    tilt: 20,
-    radius: 260
-  });
+  // 1. Main Welcome/Stage Plasma Orb
+  const container = $('plasma-orb-main');
+  if (container) {
+    plasmaOrb = new PlasmaRingController('plasma-orb-main', {
+      colors: ['#FF1744', '#0055FF', '#FF0055', '#7928CA', '#00E5FF'],
+      density: 110,
+      speed: 75,
+      waveHeight: 18,
+      centerOpacity: 85,
+      scale: 36,
+      dragSensitivity: 100,
+      tilt: 20,
+      radius: 260
+    });
+  }
+
+  // 2. Header Persistent Plasma Orb
+  const headerContainer = $('plasma-header-orb');
+  if (headerContainer) {
+    plasmaHeaderOrb = new PlasmaRingController('plasma-header-orb', {
+      colors: ['#FF1744', '#0055FF', '#FF0055', '#7928CA', '#00E5FF'],
+      density: 70,
+      speed: 80,
+      waveHeight: 18,
+      centerOpacity: 90,
+      scale: 36,
+      dragSensitivity: 100,
+      tilt: 20,
+      radius: 260
+    });
+  }
+}
+
+function broadcastVoiceToPlasma(active, intensity = 1.0) {
+  if (plasmaOrb) plasmaOrb.setVoiceActivity(active, intensity);
+  if (plasmaHeaderOrb) plasmaHeaderOrb.setVoiceActivity(active, intensity);
 }
 
 // ─── Chat Persistence ─────────────────────────────────────────
@@ -607,15 +632,15 @@ function speakText(text) {
   // Animate Plasma Ring on speech
   const orbContainer = $('plasma-orb-main');
   utt.onstart = () => {
-    if (plasmaOrb) plasmaOrb.setVoiceActivity(true, 1.25);
+    broadcastVoiceToPlasma(true, 1.35);
     if (orbContainer) orbContainer.classList.add('speaking');
   };
   utt.onend = () => {
-    if (plasmaOrb) plasmaOrb.setVoiceActivity(false);
+    broadcastVoiceToPlasma(false);
     if (orbContainer) orbContainer.classList.remove('speaking');
   };
   utt.onerror = () => {
-    if (plasmaOrb) plasmaOrb.setVoiceActivity(false);
+    broadcastVoiceToPlasma(false);
     if (orbContainer) orbContainer.classList.remove('speaking');
   };
 
@@ -629,14 +654,14 @@ function startVoiceInput() {
   }
   state.voiceInputActive = true;
   micBtn.classList.add('recording');
-  if (plasmaOrb) plasmaOrb.setVoiceActivity(true, 0.85);
+  broadcastVoiceToPlasma(true, 0.95);
   state.recognition.start();
 }
 
 function stopVoiceInput() {
   state.voiceInputActive = false;
   micBtn.classList.remove('recording');
-  if (plasmaOrb) plasmaOrb.setVoiceActivity(false);
+  broadcastVoiceToPlasma(false);
   try { state.recognition.stop(); } catch(e) {}
 }
 

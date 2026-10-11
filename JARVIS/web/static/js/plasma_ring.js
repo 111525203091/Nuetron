@@ -196,13 +196,21 @@ class PlasmaRingController {
       const sh = gl.createShader(type);
       gl.shaderSource(sh, src);
       gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        console.error('PlasmaRing Shader Error:', gl.getShaderInfoLog(sh));
+      }
       return sh;
     };
 
     const prog = gl.createProgram();
-    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
-    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+    const vs = compile(gl.VERTEX_SHADER, VERT);
+    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
     gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error('PlasmaRing Program Link Error:', gl.getProgramInfoLog(prog));
+    }
     this.prog = prog;
 
     const U = (name) => gl.getUniformLocation(prog, name);
