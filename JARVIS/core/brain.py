@@ -137,14 +137,16 @@ Timezone: Local system time
 
         return None
 
-    def think(self, user_input: str, context: Optional[str] = None) -> str:
+    def think(self, user_input: str, context: Optional[str] = None, files: Optional[list] = None) -> str:
         """
         Process user input and return JARVIS's response.
+        Supports multimodal file inputs (images, text/code files, data documents).
         Engine priority: Gemini → xAI Grok → Local mode.
 
         Args:
             user_input: The user's message
             context: Optional additional context (system info, skill output, etc.)
+            files: Optional list of attached file objects [{"name": "...", "type": "...", "content": "..."}]
 
         Returns:
             JARVIS's response as a string
@@ -170,6 +172,43 @@ Timezone: Local system time
 
         reply = None
 
+        # Build user parts (supporting attached files & images)
+        user_parts = []
+        file_text_summaries = []
+
+        if files:
+            for f in files:
+                fname = f.get("name", "file")
+                ftype = f.get("type", "")
+                data = f.get("data", "")  # base64 data URL or raw string
+
+                # If image with base64 data, attach as inlineData for Gemini
+                if ftype.startswith("image/") and data:
+                    b64_content = data.split(",", 1)[1] if "," in data else data
+                    user_parts.append({
+                        "inlineData": {
+                            "mimeType": ftype or "image/png",
+                            "data": b64_content
+                        }
+                    })
+                elif f.get("text"):
+                    # Text/code/data file content provided directly
+                    file_text_summaries.append(f"--- ATTACHED FILE: {fname} ---\n{f.get('text')}\n--- END FILE ---")
+                elif data and not ftype.startswith("image/"):
+                    # Non-image data URI: try decoding base64 text
+                    try:
+                        import base64
+                        raw = base64.b64decode(data.split(",", 1)[1] if "," in data else data).decode("utf-8", errors="replace")
+                        file_text_summaries.append(f"--- ATTACHED FILE: {fname} ---\n{raw}\n--- END FILE ---")
+                    except Exception:
+                        file_text_summaries.append(f"--- ATTACHED FILE: {fname} ({ftype}) ---")
+
+        full_prompt = prompt
+        if file_text_summaries:
+            full_prompt = "\n\n".join(file_text_summaries) + "\n\n" + (prompt or "Please analyze the attached file(s).")
+
+        user_parts.append({"text": full_prompt})
+
         # ── 1. Try Gemini (unless in cooldown or offline) ─────────────────────
         import time as _time
         now_ts = _time.time()
@@ -183,7 +222,7 @@ Timezone: Local system time
                     "role": role,
                     "parts": [{"text": msg["content"]}]
                 })
-            contents.append({"role": "user", "parts": [{"text": prompt}]})
+            contents.append({"role": "user", "parts": user_parts})
 
             payload = {
                 "contents": contents,
@@ -226,7 +265,7 @@ Timezone: Local system time
         # ── 2. Try xAI Grok if Gemini failed / on cooldown ───────────────────
         if not reply and self.xai_api_key:
             log.info("Gemini unavailable — falling back to xAI Grok...")
-            reply = self._think_grok(prompt)
+            reply = self._think_grok(full_prompt)
             if reply:
                 log.info("Response served by xAI Grok.")
 

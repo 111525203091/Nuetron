@@ -13,6 +13,7 @@ const state = {
   recognition: null,
   theme: 'dark',
   msgHistory: [],
+  pendingFiles: [],
 };
 
 // ─── DOM Refs ─────────────────────────────────────────────────
@@ -232,25 +233,35 @@ function setThinking(active) {
 
 // ─── Send Message ─────────────────────────────────────────────
 function sendMessage(text) {
-  text = text.trim();
-  if (!text) return;
+  text = (text || '').trim();
+  const filesToSend = [...(state.pendingFiles || [])];
+
+  if (!text && filesToSend.length === 0) return;
   // If stuck in thinking state, force-reset instead of dropping the message
   if (state.isThinking) setThinking(false);
 
-  appendMessage('user', text);
-  state.msgHistory.push(text);
+  appendMessage('user', text, false, filesToSend);
+  if (text) state.msgHistory.push(text);
+
+  // Clear pending attachments & input
+  clearPendingFiles();
   userInput.value = '';
   autoResize(userInput);
   setThinking(true);
 
+  const payload = {
+    message: text,
+    files: filesToSend
+  };
+
   if (state.socket && state.socket.connected) {
-    state.socket.emit('message', { message: text });
+    state.socket.emit('message', payload);
   } else {
     // Socket disconnected: instant HTTP fallback so user is never ignored
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text })
+      body: JSON.stringify(payload)
     })
     .then(r => r.json())
     .then(data => {
@@ -266,7 +277,8 @@ function sendMessage(text) {
     });
   }
 }
-function appendMessage(role, text, isError = false) {
+
+function appendMessage(role, text, isError = false, attachedFiles = []) {
   // Hide welcome message
   const welcome = chatMessages.querySelector('.welcome-msg');
   if (welcome) welcome.style.display = 'none';
@@ -279,9 +291,34 @@ function appendMessage(role, text, isError = false) {
 
   const avatar = isJarvis ? 'U' : '⬡';
   const name   = isJarvis ? 'ULTRON' : 'YOU';
+
+  // Render attached files if present
+  let attachmentsHtml = '';
+  if (attachedFiles && attachedFiles.length > 0) {
+    attachmentsHtml = '<div class="msg-attachments-container">';
+    attachedFiles.forEach(f => {
+      if (f.type && f.type.startsWith('image/') && f.data) {
+        attachmentsHtml += `
+          <a href="${f.data}" target="_blank" title="View ${escapeHtml(f.name)}">
+            <img src="${f.data}" alt="${escapeHtml(f.name)}" class="msg-image-preview" />
+          </a>
+        `;
+      } else {
+        const icon = f.name.endsWith('.py') ? '🐍' : f.name.endsWith('.json') ? '📋' : f.name.endsWith('.csv') ? '📊' : '📄';
+        attachmentsHtml += `
+          <div class="msg-file-card">
+            <span>${icon}</span>
+            <span>${escapeHtml(f.name)}</span>
+          </div>
+        `;
+      }
+    });
+    attachmentsHtml += '</div>';
+  }
+
   let parsedText = isJarvis
     ? (typeof marked !== 'undefined' ? marked.parse(text) : escapeHtml(text))
-    : `<p>${escapeHtml(text)}</p>`;
+    : (text ? `<p>${escapeHtml(text)}</p>` : '');
 
   // Check if message references screenshot and inject preview
   if (isJarvis && text.includes('/static/screenshots/latest.png')) {
@@ -303,7 +340,10 @@ function appendMessage(role, text, isError = false) {
     <div class="msg-avatar">${avatar}</div>
     <div class="msg-content">
       <div class="msg-meta">${name} · ${now}</div>
-      <div class="msg-bubble${isError ? ' error' : ''}">${parsedText}</div>
+      <div class="msg-bubble${isError ? ' error' : ''}">
+        ${attachmentsHtml}
+        ${parsedText}
+      </div>
     </div>
   `;
 
@@ -798,6 +838,160 @@ function initInputHandlers() {
       historyIndex = -1;
     }
   });
+
+  // ─── File Attachment Handlers ────────────────────────────────
+  const fileInput = $('file-input');
+  const attachBtn = $('attach-btn');
+  const inputWrapper = document.querySelector('.input-wrapper');
+
+  if (attachBtn && fileInput) {
+    attachBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      handleFilesSelected(e.target.files);
+      fileInput.value = ''; // allow picking same file again
+    });
+  }
+
+  // Drag and Drop files onto input wrapper
+  if (inputWrapper) {
+    inputWrapper.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputWrapper.classList.add('drag-over');
+    });
+
+    ['dragleave', 'dragend'].forEach(ev => {
+      inputWrapper.addEventListener(ev, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        inputWrapper.classList.remove('drag-over');
+      });
+    });
+
+    inputWrapper.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputWrapper.classList.remove('drag-over');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFilesSelected(e.dataTransfer.files);
+      }
+    });
+  }
+
+  // Paste files (e.g. screenshots from clipboard)
+  window.addEventListener('paste', (e) => {
+    if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+      // Don't intercept if focus is in another input field other than chat
+      if (document.activeElement && document.activeElement.id === 'term-input') return;
+      handleFilesSelected(e.clipboardData.files);
+    }
+  });
+}
+
+function handleFilesSelected(fileList) {
+  if (!fileList || fileList.length === 0) return;
+
+  Array.from(fileList).forEach(file => {
+    // Max 15MB file size check
+    if (file.size > 15 * 1024 * 1024) {
+      showToast(`File "${file.name}" exceeds 15MB limit.`, 'warn');
+      return;
+    }
+
+    const reader = new FileReader();
+    const isImage = file.type.startsWith('image/');
+
+    if (isImage) {
+      reader.onload = (e) => {
+        state.pendingFiles.push({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: e.target.result // Base64 data URL
+        });
+        renderPendingFiles();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Read text/code/data files as text (or data URL if binary)
+      const isText = (
+        file.type.startsWith('text/') ||
+        file.name.match(/\.(py|js|ts|html|css|json|md|txt|csv|xml|yaml|yml|sql|sh|bat|ps1|c|cpp|h|java|rb|php)$/i)
+      );
+      if (isText) {
+        reader.onload = (e) => {
+          state.pendingFiles.push({
+            name: file.name,
+            type: file.type || 'text/plain',
+            size: file.size,
+            text: e.target.result
+          });
+          renderPendingFiles();
+        };
+        reader.readAsText(file);
+      } else {
+        // Binary document (PDF, docx, etc.) read as data URL
+        reader.onload = (e) => {
+          state.pendingFiles.push({
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            data: e.target.result
+          });
+          renderPendingFiles();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+}
+
+function renderPendingFiles() {
+  const bar = $('file-attachments-bar');
+  if (!bar) return;
+
+  if (!state.pendingFiles || state.pendingFiles.length === 0) {
+    bar.innerHTML = '';
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  bar.innerHTML = '';
+
+  state.pendingFiles.forEach((file, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+
+    let previewHtml = '';
+    if (file.type && file.type.startsWith('image/') && file.data) {
+      previewHtml = `<img src="${file.data}" alt="${escapeHtml(file.name)}" class="file-chip-thumb" />`;
+    } else {
+      previewHtml = '<span>📎</span>';
+    }
+
+    chip.innerHTML = `
+      ${previewHtml}
+      <span class="chip-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+      <button class="chip-remove" type="button" title="Remove attachment">✕</button>
+    `;
+
+    chip.querySelector('.chip-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.pendingFiles.splice(idx, 1);
+      renderPendingFiles();
+    });
+
+    bar.appendChild(chip);
+  });
+}
+
+function clearPendingFiles() {
+  state.pendingFiles = [];
+  renderPendingFiles();
 }
 
 function autoResize(el) {

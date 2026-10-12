@@ -123,12 +123,19 @@
 
         <!-- Input Area -->
         <div class="input-area">
+          <!-- Pending Attachments Preview Container -->
+          <div class="file-attachments-bar" id="file-attachments-bar" style="display:none;"></div>
+
           <div class="input-wrapper">
-            <div class="input-icon">◈</div>
+            <!-- Hidden File Input -->
+            <input type="file" id="file-input" multiple style="display:none;" />
+            <button class="attach-btn" id="attach-btn" title="Attach file or image">
+              <span class="attach-icon">📎</span>
+            </button>
             <textarea
               id="user-input"
               class="chat-input"
-              placeholder="Speak your command, {{ owner_name }}..."
+              placeholder="Speak your command or drop files, {{ owner_name }}..."
               rows="1"
               autofocus
             ></textarea>
@@ -143,7 +150,7 @@
             </div>
           </div>
           <div class="input-hints">
-            <span>Try: "run: dir" · "where am i" · "local weather" · "fetch https://example.com" · "open chrome"</span>
+            <span>Try: "run: dir" · "where am i" · "local weather" · attach images or code · "open chrome"</span>
           </div>
         </div>
       </main>

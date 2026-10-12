@@ -147,15 +147,18 @@ def signalhouse():
 @app.route("/api/chat", methods=["POST"])
 def chat():
     """HTTP endpoint for chat (non-WebSocket)."""
-    data = request.get_json()
+    data = request.get_json() or {}
     user_input = data.get("message", "").strip()
+    files = data.get("files", [])
 
-    if not user_input:
+    if not user_input and not files:
         return jsonify({"error": "Empty message"}), 400
 
     try:
+        if not user_input and files:
+            user_input = "Please inspect and summarize the attached file(s)."
         intent = IntentParser.parse(user_input)
-        response = _dispatcher.dispatch(intent)
+        response = _dispatcher.dispatch(intent, files=files)
         return jsonify({
             "response": response,
             "intent": intent.action,
@@ -298,10 +301,11 @@ def on_message(data):
     """Handle real-time chat messages via WebSocket."""
     global _active_sid
     user_input = data.get("message", "").strip()
-    if not user_input:
+    files = data.get("files", [])
+    if not user_input and not files:
         return
 
-    log.info("WebSocket message: %s", user_input)
+    log.info("WebSocket message: %s (attachments: %d)", user_input, len(files))
     sid = request.sid
     _active_sid = sid  # update to latest
     emit("thinking", {"status": True})
@@ -310,9 +314,12 @@ def on_message(data):
         response = None
         intent_action = "chat"
         try:
-            intent = IntentParser.parse(user_input)
+            prompt_text = user_input
+            if not prompt_text and files:
+                prompt_text = "Please inspect and summarize the attached file(s)."
+            intent = IntentParser.parse(prompt_text)
             intent_action = intent.action
-            response = _dispatcher.dispatch(intent)
+            response = _dispatcher.dispatch(intent, files=files)
         except Exception as e:
             log.error("WebSocket dispatch error: %s", str(e))
             response = f"I encountered an error, {OWNER_NAME}: {str(e)}"

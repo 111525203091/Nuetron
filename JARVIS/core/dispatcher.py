@@ -25,7 +25,7 @@ class Dispatcher:
         self.tasks = TaskSkills(on_reminder=on_reminder)
         log.info("Dispatcher initialized.")
 
-    def dispatch(self, intent: Intent) -> str:
+    def dispatch(self, intent: Intent, files: Optional[list] = None) -> str:
         """
         Route an intent to the appropriate handler and return a response.
         """
@@ -262,4 +262,4 @@ class Dispatcher:
 
         # ─── Chat (AI fallback) ───────────────────────────────────────────────
         else:
-            return self.brain.think(intent.raw)
+            return self.brain.think(intent.raw, files=files)
