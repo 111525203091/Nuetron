@@ -63,35 +63,35 @@ let plasmaHeaderOrb = null;
 function initPlasmaRingOrb() {
   if (typeof PlasmaRingController !== 'function') return;
 
-  // 1. Main Welcome/Stage Plasma Orb
+  // 1. Main Welcome/Stage Plasma Orb (260px container, radius ~130 to fit)
   const container = $('plasma-orb-main');
   if (container) {
     plasmaOrb = new PlasmaRingController('plasma-orb-main', {
       colors: ['#FF1744', '#0055FF', '#FF0055', '#7928CA', '#00E5FF'],
-      density: 110,
+      density: 80,
       speed: 75,
       waveHeight: 18,
       centerOpacity: 85,
       scale: 36,
       dragSensitivity: 100,
       tilt: 20,
-      radius: 260
+      radius: 130
     });
   }
 
-  // 2. Header Persistent Plasma Orb
+  // 2. Header Persistent Plasma Orb (48px container, radius ~20 to fit)
   const headerContainer = $('plasma-header-orb');
   if (headerContainer) {
     plasmaHeaderOrb = new PlasmaRingController('plasma-header-orb', {
       colors: ['#FF1744', '#0055FF', '#FF0055', '#7928CA', '#00E5FF'],
-      density: 70,
+      density: 40,
       speed: 80,
-      waveHeight: 18,
+      waveHeight: 10,
       centerOpacity: 90,
       scale: 36,
-      dragSensitivity: 100,
+      dragSensitivity: 50,
       tilt: 20,
-      radius: 260
+      radius: 20
     });
   }
 }
